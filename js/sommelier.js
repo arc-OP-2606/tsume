@@ -75,7 +75,7 @@
       '次の事実だけを使って、声で読む台本に整える。事実を足さない・変えない。やわらかく上品な話し言葉で。',
       `全体で150〜320文字（30〜60秒）。k はそのまま残す。`,
       '事実:', JSON.stringify(base.lines)].join('\n');
-    const r = await T.ai.generateJSON(prompt, schema, { temperature: 0.6, maxTokens: 800 });
+    const r = await T.ai.generateJSON(prompt, schema, { temperature: 0.6, maxTokens: 1536 });
     if (!r || !r.data || !Array.isArray(r.data.lines)) return null;
     const lines = r.data.lines.filter(l => l && KS.includes(l.k) && typeof l.text === 'string').map(l => ({ k: l.k, text: l.text.replace(/[<>]/g, '').trim().slice(0, 120) })).filter(l => l.text);
     const chars = len(lines);

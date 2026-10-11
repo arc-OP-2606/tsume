@@ -3,7 +3,7 @@
   'use strict';
   const T = global.TSUME || (global.TSUME = {});
   T.CONFIG = {
-    relayUrl: '',   /* 例: 'https://tsume-relay.<account>.workers.dev'（デプロイ後に入れる） */
-    relayToken: '', /* 中継の APP_TOKEN と同じ値 */
+    relayUrl: 'https://tsume-relay.natsu-sui.workers.dev', /* relay/ をデプロイした URL（空にすると AI を使わない） */
+    relayToken: '950355637af4b72eacdaf0079cac7395', /* 中継の APP_TOKEN と同じ値 */
   };
 })(typeof window !== 'undefined' ? window : globalThis);

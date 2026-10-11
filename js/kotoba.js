@@ -99,10 +99,12 @@
   function local(st, text) { return compose(st, text, parse(text), null); }
   /** AI が使えれば読み直して返す（使えなければ null） */
   async function withAI(st, text) {
-    const r = await T.ai.generateJSON(prompt(text), schema(), { temperature: 0.8, maxTokens: 512 });
+    const r = await T.ai.generateJSON(prompt(text), schema(), { temperature: 0.8, maxTokens: 1024 });
     const a = r && check(r.data); if (!a) return null;
     const dict = parse(text);
-    const read = { words: dict.words, colors: a.colors.length ? a.colors : dict.colors, cond: Object.assign({}, a.cond, dict.cond) };
+    // 予算・時間・経験・長さは、言葉にはっきり書いたとき（辞書が拾ったとき）だけ変える。AI は季節・ムード・シーンまで
+    const aiCond = {}; ['season', 'mood', 'scene'].forEach(k => { if (a.cond[k]) aiCond[k] = a.cond[k]; });
+    const read = { words: dict.words, colors: a.colors.length ? a.colors : dict.colors, cond: Object.assign(aiCond, dict.cond) };
     return compose(st, text, read, { name: a.name, reason: a.reason, model: r.model || 'gemini' });
   }
   /** 「もっと甘く」などで条件だけ変えて組み直す（名前と色はそのまま） */
