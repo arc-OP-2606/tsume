@@ -1,0 +1,10 @@
+{
+  "name": "tsumé — セルフネイル デザインアトリエ",
+  "short_name": "tsumé",
+  "lang": "ja",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FAF6F2",
+  "theme_color": "#FAF6F2",
+  "icons": [{ "src": "assets/icon-only.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }]
+}
