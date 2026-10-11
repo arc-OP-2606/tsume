@@ -34,9 +34,16 @@
   const sizeFor = (st, k) => (D.KINDS[k].big && st.editor.size === 'S' ? 'M' : st.editor.size);
   // 置く場所の候補（空いているところから）
   const SPOTS = [].concat(D.LAYOUTS.one.items, D.LAYOUTS.three.items, D.LAYOUTS.cluster.items, D.LAYOUTS.diagonal.items, D.LAYOUTS.tipline.items, D.LAYOUTS.vertical.items);
-  function freeSpot(list) {
-    const far = s => list.every(t => Math.hypot((t.x - s.x) * 1, (t.y - s.y) * 1.3) > 0.14);
-    return SPOTS.find(far) || { x: 0.3 + Math.random() * 0.4, y: 0.3 + Math.random() * 0.5 };
+  // パーツの大きさを見て、重ならない所。大きいパーツは先端・サイドを避けて根元寄りに（引っかかりにくい）。
+  // どこも重なるなら、いちばん重なりが少ない所
+  const GRID = [0.85, 0.75, 0.65, 0.55, 0.45].flatMap(y => [0.5, 0.38, 0.62, 0.3, 0.7].map(x => ({ x, y })));
+  const radius = t => D.KINDS[t.k].unit * (D.SIZES[t.s || 'M'] || 1);
+  function freeSpot(list, item, L) {
+    const big = D.KINDS[item.k].big || radius(item) > 14, spots = big ? GRID : SPOTS.concat(GRID);
+    const gap = s => Math.min(999, ...list.map(t => Math.hypot((t.x - s.x) * 100, (t.y - s.y) * L) - (radius(t) + radius(item)) * 0.85));
+    let best = spots[0], bestGap = -Infinity;
+    for (const s of spots) { const g = gap(s); if (g > 0) return s; if (g > bestGap) { bestGap = g; best = s; } }
+    return best;
   }
 
   const trayTabOf = it => (D.TRAY.find(t => t.items.some(x => x.k === it.k)) || D.TRAY[0]).id;
@@ -45,8 +52,9 @@
     const e = st.editor;
     e.pick = Object.assign({}, item); e.tab = trayTabOf(item);
     if (METAL_KINDS.includes(item.k) && D.METALS[item.v]) e.metal = item.v;
-    const list = clone(listOf(st)), spot = freeSpot(list);
-    const add = Object.assign(pickItem(st), { x: spot.x, y: spot.y, s: sizeFor(st, item.k) }); if (add.k === 'chain') add.r = -28;
+    const d = designNow(st), { L } = T.nailPath(d.foot ? 'square' : st.sel.shape, d.foot ? 'short' : st.sel.length);
+    const list = clone(listOf(st)), add = Object.assign(pickItem(st), { s: sizeFor(st, item.k) }), spot = freeSpot(list, add, L);
+    Object.assign(add, { x: spot.x, y: spot.y }); if (add.k === 'chain') add.r = -28;
     list.push(add); setList(st, list); e.selected = list.length - 1; e.layout = null;
     return e.selected;
   }
