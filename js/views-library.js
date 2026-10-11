@@ -23,7 +23,7 @@
       const sel = Object.assign(E.defaults(), x.sel), d = E.build(c, sel, { season: st.season, paletteIndex: x.paletteIndex, toppings: x.toppings || undefined });
       const side = sel.hand === 'left' ? 'right' : 'left';
       const art = d.foot ? T.renderFoot(d.foot, d.palette, { seed: 11 }) : T.renderHand(side === 'left' ? d.left : d.right, d.palette, { side, skin: x.skin || st.skin, shape: sel.shape, length: sel.length, seed: 11, viewBox: '50 50 320 380' });
-      return `<div class="mine-card"><button class="card-btn" data-act="open-saved" data-id="${x.id}"><span class="mine-art">${art}</span><b>${esc(c.name)}</b><span class="small muted">${esc(d.palette.name)} ・ ${esc(E.situation(sel, st.season).name)}</span></button><button class="link" data-act="remove" data-id="${x.id}">削除</button></div>`;
+      return `<div class="mine-card"><button class="card-btn" data-act="open-saved" data-id="${x.id}"><span class="mine-art">${art}</span><b>${esc(c.name)}</b><span class="small muted">${esc(d.palette.name)} ・ ${esc(E.situation(sel, st.season).name)}</span>${Number.isFinite(x.madeAt) ? `<span class="made">${ICON.check}作った ${new Date(x.madeAt).getMonth() + 1}/${new Date(x.madeAt).getDate()}</span>` : ''}</button><button class="link" data-act="remove" data-id="${x.id}">削除</button></div>`;
     }).join('');
     return `${U.bar({ back: true, title: 'マイデザイン', right: `<span class="small muted">${st.saved.length}件</span>` })}<div class="mine-grid">${cards}</div>`;
   };
@@ -39,24 +39,30 @@
       <div class="card flat"><h3>100均3社の得意分野</h3><ul class="notes"><li>セリア: カラージェル85色超、マグネットジェル、ミラーパウダー、ピールオフベース、カラーベースコート。品揃えが最多。</li><li>キャンドゥ: ニュアンスカラーとマグネット13色、ハードラインジェル、ネイルシール（着物・リボン・花）。</li><li>ダイソー: たっぷり容量のカラージェル、マグネット10色、オーロラパウダー、UV-LEDライト、ネイルチップ120枚。</li></ul></div>`;
   }
 
+  // 図鑑の品ぞろえはエディタのトレイと同じ。押すと大きさ・値段・つけ方のシートが開き、指にのせて試せる
+  const BOOK_TITLE = { stone: 'ストーン', pearl: 'パール・ブリオン・スタッズ', metal: 'メタルパーツ', bijou: 'ビジュー', flower: '3Dフラワー・チェーン' };
+  const BOOK_SIZE = { stone: 'L', pearl: 'L', bullion: 'S', stud: 'L', charm: 'S', bijou: 'S', flower3d: 'S', chain: 'S' };
+  function partLabel(it) {
+    const metal = it.v === 'silver' ? '・銀' : it.v === 'rose' ? '・ローズ' : '・金';
+    if (it.k === 'stone') return D.STONES[it.v].name;
+    if (it.k === 'pearl') return D.PEARLS[it.v].name;
+    if (it.k === 'bullion') return 'ブリオン' + metal;
+    if (it.k === 'stud') return D.STUDS[it.shape || 'round'].name + 'スタッズ';
+    if (it.k === 'charm') return D.CHARMS[it.shape].name;
+    if (it.k === 'bijou') return D.BIJOUX[it.v].name;
+    if (it.k === 'flower3d') return D.FLOWERS[it.v].name;
+    return 'チェーン' + metal;
+  }
   function partsBook() {
-    const row = (title, items, box) => `<div class="parts-row"><h3>${esc(title)}</h3><div class="parts-grid">${items.map(([it, label]) => `<div class="part"><span class="part-art">${T.partSwatch(it, box)}</span><span class="part-name">${esc(label)}</span></div>`).join('')}</div></div>`;
+    const btn = it => `<button class="part" data-act="part-open" data-k="${it.k}" data-v="${it.v}" data-shape="${it.shape || ''}" aria-label="${esc(T.toppings.fullName(it))}：大きさ・値段・つけ方"><span class="part-art">${T.partSwatch(Object.assign({ s: BOOK_SIZE[it.k] }, it, it.k === 'chain' ? { r: 0 } : {}), 17)}</span><span class="part-name">${esc(partLabel(it))}</span></button>`;
+    const rows = D.TRAY.map(t => `<div class="parts-row"><h3>${esc(BOOK_TITLE[t.id] || t.name)}</h3><div class="parts-grid">${t.items.map(btn).join('')}</div></div>`).join('');
     const sa = T.MATERIALS.stone_accent.tiers;
     const prices = [['100均', sa.coin], ['専門店', sa.petit], ['ブランド', sa.luxe]].map(([k, t]) => `<div class="price-card"><span class="pk">${k}</span><span class="py latin">${t.y.toLocaleString()}円</span><span class="pp">${esc(t.p)}<br>${esc(t.s)}</span></div>`).join('');
     return `<div class="parts-book">
-      <div class="card flat parts-card">
-        ${row('ストーン', Object.entries(D.STONES).map(([v, c]) => [{ k: 'stone', v, s: 'L' }, c.name]), 17)}
-        ${row('パール・粒・スタッズ', Object.entries(D.PEARLS).map(([v, c]) => [{ k: 'pearl', v, s: 'L' }, c.name]).concat([[{ k: 'bullion', v: 'gold', s: 'S' }, 'ブリオン'], [{ k: 'chain', v: 'gold', s: 'S', r: 0 }, 'チェーン'], [{ k: 'stud', v: 'silver', shape: 'square', s: 'L' }, 'スタッズ']]), 17)}
-        ${row('メタルパーツ', Object.keys(D.CHARMS).map(sh => [{ k: 'charm', shape: sh, v: 'gold', s: 'S' }, D.CHARMS[sh].name]), 17)}
-        ${row('ビジュー・3Dフラワー', Object.entries(D.BIJOUX).slice(0, 4).map(([v, c]) => [{ k: 'bijou', v, s: 'S' }, c.name]).concat(Object.entries(D.FLOWERS).slice(0, 2).map(([v, c]) => [{ k: 'flower3d', v, s: 'S' }, c.name])), 17)}
-      </div>
+      <p class="small muted parts-lead">${ICON.hand}パーツを押すと、大きさ・値段・つけ方が見られて、そのまま指にのせて試せます。</p>
+      <div class="card flat parts-card">${rows}</div>
       <div class="group-label">ストーンの値段（同じ置き方のまま）</div>
       <div class="price-cards">${prices}</div>
-      <div class="card flat tips"><h3>つけ方のコツ</h3><ol>
-        <li>置く場所にトップジェルを少しのせ、ピンセットで置いて硬化。</li>
-        <li>ストーンの表面にはトップを塗らない。まわりだけ固めると輝きが残る。</li>
-        <li>大きいパーツは、まわりをジェルで囲んでもう一度硬化。マニキュアならネイルグルーで。</li>
-      </ol></div>
       <p class="disclaimer">価格は2026年10月の調査に基づく目安（税込）。店・時期で変わります。</p>
     </div>`;
   }
@@ -73,7 +79,9 @@
         ${card('02', 'トッピングで仕上げる', '塗りと光は土台。ストーン・パール・メタルパーツで完成させます。量はシーンに合わせて自動で調整し、自分で置き直すこともできます。', 'nav', 'data-view="try"', '試着してみる')}
         ${card('03', '予算で素材だけ変わる', '同じ設計のまま、100均のストーンがスワロフスキーに。価格は2026年10月の調査目安。', 'mattab-open', '', 'トッピングの図鑑を見る')}
         ${card('04', '利き手は、置くだけ', '利き手側は描かず、パーツを置くだけの簡単な作り方に自動で差し替えます。', 'start', '', '質問に答える')}
+        ${card('05', '作るモードで、キレイに', '経験に合わせて手順の細かさが変わります。1手順ずつ大きな文字で、硬化のタイマーつき。最後に仕上がりを5つの点で確かめます。', 'start', '', 'デザインを選ぶ')}
       </div>
+      <div class="card flat"><h3>参考にした情報</h3><ul class="notes">${T.HOWTO.SOURCES.map(([t]) => `<li>${esc(t)}</li>`).join('')}</ul><p class="small muted">作り方は2026年10月に、ネイルの協会・公的機関・メーカー・ネイリストの情報をもとにまとめました。硬化の時間などは、お使いのライトとジェルの説明書を優先してください。</p></div>
       <div class="card flat"><h3>価格と情報について</h3><p class="small muted">価格は2026年10月のWeb調査に基づく目安（税込）。店・時期で変わります。個人情報の収集・広告・課金はありません。保存した内容はこの端末の中だけにあります。</p></div>`;
   };
 
@@ -93,5 +101,18 @@
     store: (el, st) => { st.matStore = el.dataset.s; T.app.render(); },
     mattab: (el, st) => { st.matTab = el.dataset.v; T.app.render(); },
     'mattab-open': (el, st) => { st.matTab = 'toppings'; T.app.go('materials'); },
+    'part-open': (el, st) => { const it = { k: el.dataset.k, v: el.dataset.v }; if (el.dataset.shape) it.shape = el.dataset.shape; st.partItem = it; st.sheet = 'part'; T.app.render(); },
+    // エディタから図鑑に来たときはエディタへ戻る（指の選択を保つ）。それ以外は見せ場の指で開く
+    'part-try': (el, st) => {
+      const it = st.partItem; if (!it) return;
+      const from = T.app.peek(), fromEditor = from === 'editor';
+      st.sheet = null;
+      // 試着の画面から来たときは、そこで選んでいるデザインにのせる
+      if ((!st.current || from === 'try') && T.tryAdopt) T.tryAdopt(st);
+      if (!fromEditor) T.editor.enter(st);
+      T.editor.addPart(st, it); st.fx = 'pop';
+      if (fromEditor) T.app.back(); else T.app.go('editor');
+      T.app.toast(`${T.FINGER_NAMES[st.editor.finger] || '親指'}にのせました。ドラッグで動かせます`);
+    },
   });
 })(typeof window !== 'undefined' ? window : globalThis);

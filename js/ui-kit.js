@@ -30,6 +30,8 @@
     rotate: svg('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>'),
     trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>'),
     wand: svg('<path d="M4 20 15 9"/><path d="M15 4v3M13.5 5.5h3M19 9v2M18 10h2M10 3v2M9 4h2"/>'),
+    list: svg('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" stroke-width="2.6"/>'),
+    play: svg('<path d="M8 5.5v13l10.5-6.5z"/>', 1.8),
   };
   const st = () => T.app.state;
 

@@ -17,15 +17,16 @@
   const CHARMS = { star: { name: '星' }, moon: { name: '月' }, heart: { name: 'ハート' }, ribbon: { name: 'リボン' }, butterfly: { name: '蝶' }, shell: { name: '貝' }, flower: { name: '花' }, turtle: { name: '亀' } };
   const STUDS = { round: { name: '丸' }, square: { name: '四角' }, triangle: { name: '三角' } };
   const SIZES = { S: 0.72, M: 1, L: 1.38 };
+  // mm = 大きさ M の実物の目安（爪の幅を約12mmとして描画の大きさから換算。S・L は SIZES の倍率）
   const KINDS = {
-    stone: { name: 'ストーン', mat: 'stone_accent', minutes: 1, unit: 11 },
-    pearl: { name: 'パール', mat: 'pearls', minutes: 1, unit: 11.5 },
-    bullion: { name: 'ブリオン', mat: 'brion', minutes: 1, unit: 9 },
-    stud: { name: 'スタッズ', mat: 'studs', minutes: 1, unit: 9 },
-    charm: { name: 'メタルパーツ', mat: 'metal_charm', minutes: 1, unit: 24 },
-    bijou: { name: 'ビジュー', mat: 'bijou', minutes: 2, unit: 14, big: true },
-    flower3d: { name: '3Dフラワー', mat: 'flower3d', minutes: 2, unit: 21, big: true },
-    chain: { name: 'チェーン', mat: 'chain', minutes: 2, unit: 20, big: true },
+    stone: { name: 'ストーン', mat: 'stone_accent', minutes: 1, unit: 11, mm: 2.6 },
+    pearl: { name: 'パール', mat: 'pearls', minutes: 1, unit: 11.5, mm: 2.8 },
+    bullion: { name: 'ブリオン', mat: 'brion', minutes: 1, unit: 9, mm: 0.7 },
+    stud: { name: 'スタッズ', mat: 'studs', minutes: 1, unit: 9, mm: 2.2 },
+    charm: { name: 'メタルパーツ', mat: 'metal_charm', minutes: 1, unit: 24, mm: 5.2 },
+    bijou: { name: 'ビジュー', mat: 'bijou', minutes: 2, unit: 14, big: true, mm: 3.9 },
+    flower3d: { name: '3Dフラワー', mat: 'flower3d', minutes: 2, unit: 21, big: true, mm: 5.8 },
+    chain: { name: 'チェーン', mat: 'chain', minutes: 2, unit: 20, big: true, mm: 1.6 },
   };
   const LAYOUTS = {
     one: { name: '根元にひと粒', items: [{ x: 0.5, y: 0.8, s: 'M' }] },

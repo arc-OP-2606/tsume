@@ -38,6 +38,7 @@
 
   const POLISH_MAP = { color_gel: 'polish_color', sheer_gel: 'polish_sheer', base_gel: 'polish_base', top_gel: 'polish_top', art_gel: 'polish_color', icing_gel: 'polish_top', magnet_gel: 'polish_magnet', glitter: 'polish_glitter', flash_gel: 'polish_glitter', peel_base: 'polish_base', color_base: 'polish_sheer', top_matte: 'polish_top', led_lamp: null };
 
+  const matForMethod = (id, method) => (method === 'polish' && id in POLISH_MAP ? POLISH_MAP[id] : id);
   function techForMethod(tid, method) {
     const t = T.TECHNIQUES[tid]; if (!t) return tid;
     if (method === 'polish') { if (t.polish === true) return tid; if (typeof t.polish === 'string') return t.polish; return 'one_color'; }
@@ -78,8 +79,8 @@
       list = [usesPeel ? 'peel_base' : 'base_gel', 'top_gel', 'led_lamp', 'file_set', 'pusher', 'cleaner', 'cuticle_oil', 'skin_clip'].concat(ids);
       if (sel.method === 'tip') list = list.concat(['tips', 'tip_tape']);
     }
+    if (T.howto) list = list.concat(T.howto.extras(design, sel));
     if (usesPeel) list = list.filter(i => i !== 'base_gel');
-    if (techUsed.includes('sugar_matte')) list = list.filter(i => i !== 'top_gel');
     list = uniq(list).filter(i => T.MATERIALS[i]);
     const topQty = {};
     (T.toppings ? T.toppings.materials(design, sel) : []).forEach(m => { topQty[m.id] = m.qty; if (!list.includes(m.id) && T.MATERIALS[m.id]) list.push(m.id); });
@@ -222,6 +223,7 @@
   }
 
   function steps(design, sel) {
+    if (T.howto) return T.howto.steps(design, sel);
     const out = [], polish = sel.method === 'polish';
     out.push({ title: '整える', body: 'エメリーボードで形を作り、ウッドスティックで甘皮を押し上げる。エタノールで油分を拭く。', stage: 0 });
     if (sel.method === 'tip') out.push({ title: 'チップを合わせる', body: '10本ぶんのサイズを選び、根元のカーブをファイルで自分の爪に合わせる。', stage: 0 });
@@ -313,5 +315,5 @@
     return L.join('\n');
   }
 
-  global.TSUME = Object.assign(global.TSUME, { engine: { seasonOf, defaults, matAt, matUpgrade, techForMethod, score, build, propose, estimate, situation, recipeText, specsOf, techsOf, colorDist, TIER_ORDER, BASE_TECHS, specAtStep, changedAtStep } });
+  global.TSUME = Object.assign(global.TSUME, { engine: { seasonOf, defaults, matAt, matUpgrade, techForMethod, matForMethod, score, build, propose, estimate, situation, recipeText, specsOf, techsOf, colorDist, TIER_ORDER, BASE_TECHS, specAtStep, changedAtStep } });
 })(typeof window !== 'undefined' ? window : globalThis);

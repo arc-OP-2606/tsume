@@ -106,5 +106,15 @@
     return D.KINDS[t.k].name;
   }
   const summary = specs => Array.from(new Set(specs.flatMap(f => (f.toppings || []).map(itemName)))).join('・');
-  T.toppings = { levelFor, capNote, plan, apply, materials, minutes, difficultyBump, stepFor, itemName, summary };
+  /** 図鑑・シート用の名前（色・形まで言う） */
+  function fullName(t) {
+    const metal = (D.METALS[t.v] || D.METALS.gold).name;
+    if (t.k === 'pearl') return (D.PEARLS[t.v] || D.PEARLS.white).name + 'パール';
+    if (t.k === 'bullion') return metal + 'のブリオン';
+    if (t.k === 'stud') return metal + 'の' + (D.STUDS[t.shape] || D.STUDS.round).name + 'スタッズ';
+    if (t.k === 'flower3d') return (D.FLOWERS[t.v] || D.FLOWERS.white).name + 'の3Dフラワー';
+    if (t.k === 'chain') return metal + 'のチェーン';
+    return itemName(t);
+  }
+  T.toppings = { levelFor, capNote, plan, apply, materials, minutes, difficultyBump, stepFor, itemName, fullName, summary };
 })(typeof window !== 'undefined' ? window : globalThis);

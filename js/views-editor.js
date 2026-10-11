@@ -39,6 +39,18 @@
     return SPOTS.find(far) || { x: 0.3 + Math.random() * 0.4, y: 0.3 + Math.random() * 0.5 };
   }
 
+  const trayTabOf = it => (D.TRAY.find(t => t.items.some(x => x.k === it.k)) || D.TRAY[0]).id;
+  /** パーツを今の指の空いている所に置き、選んだ状態にする（トレイと図鑑の両方から呼ぶ） */
+  function addPart(st, item) {
+    const e = st.editor;
+    e.pick = Object.assign({}, item); e.tab = trayTabOf(item);
+    if (METAL_KINDS.includes(item.k) && D.METALS[item.v]) e.metal = item.v;
+    const list = clone(listOf(st)), spot = freeSpot(list);
+    const add = Object.assign(pickItem(st), { x: spot.x, y: spot.y, s: sizeFor(st, item.k) }); if (add.k === 'chain') add.r = -28;
+    list.push(add); setList(st, list); e.selected = list.length - 1; e.layout = null;
+    return e.selected;
+  }
+
   function overCap(st, d) {
     const rule = (st.sel.scene && D.SCENE_RULES[st.sel.scene]) || D.NO_SCENE_RULE;
     const specs = d.foot || (st.editor.side === 'right' ? d.right : d.left), all = specs.flatMap(f => f.toppings || []);
@@ -106,10 +118,7 @@
     'ed-tab': (el, st) => { st.editor.tab = el.dataset.v; T.app.render(); },
     'ed-add': (el, st) => {
       const it = { k: el.dataset.k, v: el.dataset.v }; if (el.dataset.shape) it.shape = el.dataset.shape;
-      st.editor.pick = Object.assign({}, it);
-      const list = clone(listOf(st)), spot = freeSpot(list);
-      const add = Object.assign(pickItem(st), { x: spot.x, y: spot.y, s: sizeFor(st, it.k) }); if (add.k === 'chain') add.r = -28;
-      list.push(add); setList(st, list); st.editor.selected = list.length - 1; st.editor.layout = null; st.fx = 'pop'; T.app.render();
+      addPart(st, it); st.fx = 'pop'; T.app.render();
     },
     'ed-place': (el, st, pos) => {
       const list = clone(listOf(st)), it = pickItem(st);
@@ -149,5 +158,5 @@
     'ed-reset': (el, st) => { delete st.custom[keyOf(st)]; st.editor.selected = null; st.editor.layout = null; T.app.persist(); T.app.toast('おまかせの飾りに戻しました'); T.app.render(); },
     'ed-done': (el, st) => { T.app.persist(); if (T.app.peek() === 'detail') T.app.back(); else T.app.go('detail', { replace: true }); },
   });
-  T.editor = { ensureCustom, enter };
+  T.editor = { ensureCustom, enter, addPart };
 })(typeof window !== 'undefined' ? window : globalThis);

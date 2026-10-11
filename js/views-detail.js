@@ -43,13 +43,14 @@
   }
 
   function materials(st, d) {
-    const s = st.sel, cons = d.materials.filter(m => !m.once), tools = d.materials.filter(m => m.once), salon = d.salon;
+    const s = st.sel, cons = d.materials.filter(m => !m.once), kits = d.materials.filter(m => m.cat === 'kit'), tools = d.materials.filter(m => m.once && m.cat !== 'kit'), salon = d.salon;
     const tiers = U.seg(T.TIERS.map(t => ({ id: t, name: T.TIER_INFO[t].label })), 'tier-here', s.tier, 'aria-label="予算"');
     const row = m => `<tr${m.once ? ' class="tool"' : ''}><td>${esc(m.name)}${m.qty > 1 ? ` <span class="muted">×${m.qty}</span>` : ''}<br><span class="prod">${esc(m.product)}（${esc(m.store)}）</span>${!m.once && m.upgrade && (s.tier === 'kodawari' || s.tier === 'luxe') && m.upgrade.tier !== m.tier ? `<br><span class="up">次の予算なら ${esc(m.upgrade.p)}（${esc(m.upgrade.s)}）${yen(m.upgrade.y)}</span>` : ''}</td><td class="price num">${yen(m.subtotal)}</td></tr>`;
     return `<div class="mats">
       ${tiers}
       <table class="mat-table"><thead><tr><th>素材と選ぶ商品（店）</th><th style="text-align:right">目安</th></tr></thead><tbody>
       ${cons.map(row).join('')}
+      ${kits.length ? `<tr><td colspan="2" class="group-label">キレイに仕上げる小物（初回のみ）</td></tr>${kits.map(row).join('')}` : ''}
       ${tools.length ? `<tr><td colspan="2" class="group-label">道具（初回のみ）</td></tr>${tools.map(row).join('')}` : ''}
       </tbody></table>
       <div class="total-row"><span>材料の合計 <span class="small muted">（道具は初回のみ ${yen(d.cost.tools)}）</span></span><span class="big num">${yen(d.cost.total)}</span></div>
@@ -59,19 +60,22 @@
   }
 
   function steps(st, d, side) {
-    const list = d.steps, k = Math.max(0, Math.min(list.length - 1, st.stepIdx)), specs = specsFor(d, side);
+    const list = d.steps, k = st.stepIdx = Math.max(0, Math.min(list.length - 1, st.stepIdx)), specs = specsFor(d, side);
     const acc = d.foot ? 0 : U.accentOf(d.concept), shape = d.foot ? 'square' : st.sel.shape, length = d.foot ? 'short' : st.sel.length;
-    const strip = list.map((s, i) => `<button class="sthumb" data-act="stepgo" data-i="${i}" aria-current="${i === k}" aria-label="手順${i + 1} ${esc(s.title)}"><span class="sw">${T.renderSwatch(E.specAtStep(specs[acc], list, i), d.palette, { shape, length, seed: 11, finger: acc })}</span><span class="sn latin">${i + 1}</span></button>`).join('');
+    const thumb = (x, i) => (x.kind === 'prep-list' ? `<span class="sw icon">${ICON.list}</span>` : x.kind === 'check' ? `<span class="sw icon">${ICON.check}</span>` : `<span class="sw">${T.renderSwatch(E.specAtStep(specs[acc], list, i), d.palette, { shape, length, seed: 11, finger: acc })}</span>`);
+    const strip = list.map((x, i) => `<button class="sthumb" data-act="stepgo" data-i="${i}" aria-current="${i === k}" aria-label="手順${i + 1} ${esc(x.title)}">${thumb(x, i)}<span class="sn latin">${i + 1}</span></button>`).join('');
     const now = specs.map(f => E.specAtStep(f, list, k)), marks = E.changedAtStep(specs, list, k);
     const s = list[k], last = k === list.length - 1;
     return `<div class="steps-tab">
+      <div class="lv-row"><span class="lab">経験</span>${U.seg(T.LEVELS, 'level-here', st.sel.level, 'aria-label="セルフネイルの経験"')}</div>
+      <button class="btn rose block make-btn" data-act="make-open" data-i="${k}"><span class="mb-row">${ICON.play}${k ? `作るモードで、手順${k + 1}から` : '作るモードで始める'}</span><small>1手順ずつ大きな文字で。タイマーつき</small></button>
       <div class="steps-strip" data-keep-scroll="steps-strip">${strip}</div>
       <div class="step-now">
-        ${U.chart(d, side, { specs: now, marks })}
+        ${s.kind ? '' : U.chart(d, side, { specs: now, marks })}
         <div class="eyebrow">Step ${k + 1} / ${list.length}</div>
         <h2>${esc(s.title)}</h2>
-        <p>${esc(s.body)}</p>
-        ${marks.length && marks.length < 5 ? `<p class="small muted">点のついた指に。</p>` : ''}
+        <p class="step-body">${esc(s.body)}${!s.kind && marks.length && marks.length < 5 ? '<span class="muted">（点のついた指に）</span>' : ''}</p>
+        ${T.make.stepDetail(st, d, s, k)}
       </div>
       <div class="step-nav"><button class="btn ghost" data-act="stepprev" aria-label="前の手順" ${k === 0 ? 'disabled' : ''}>${ICON.back}</button><button class="btn" data-act="${last ? 'tab' : 'stepnext'}" data-v="look">${last ? '完成図を見る' : '次の手順へ'}</button></div>
     </div>`;
@@ -102,6 +106,14 @@
     stepgo: (el, st) => { st.stepIdx = +el.dataset.i; T.app.render(); },
     stepnext: (el, st) => { st.stepIdx += 1; T.app.render(); },
     stepprev: (el, st) => { st.stepIdx = Math.max(0, st.stepIdx - 1); T.app.render(); },
+    // 経験を変えても、同じ手順（技法・用意するもの・チェック）を開いたままにする
+    'level-here': (el, st) => {
+      const d0 = current(st), s0 = d0 && d0.steps[Math.max(0, Math.min(d0.steps.length - 1, st.stepIdx))];
+      st.sel.level = el.dataset.v; st.answered.level = true;
+      const d1 = current(st);
+      if (s0 && d1) { const id = T.howto.stepId(s0); let i = d1.steps.findIndex(x => T.howto.stepId(x) === id); if (i < 0) i = d1.steps.findIndex(x => x.stage >= s0.stage && !x.kind); st.stepIdx = Math.max(0, i); }
+      T.app.render();
+    },
     'tier-here': (el, st) => { st.sel.tier = el.dataset.v; st.answered.tier = true; T.app.render(); },
     save: (el, st) => { T.app.saveCurrent(); T.app.render(); },
     copy: (el, st) => { const d = st._design || current(st); if (d) copyText(E.recipeText(d, st.sel)); },

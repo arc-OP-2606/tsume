@@ -67,4 +67,5 @@
     'open-try': (el, st) => { adopt(st); T.app.go('detail'); },
   });
   T.tryPicks = tryPicks;
+  T.tryAdopt = adopt;
 })(typeof window !== 'undefined' ? window : globalThis);

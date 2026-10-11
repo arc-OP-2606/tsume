@@ -17,6 +17,18 @@
     document.querySelectorAll('.dots [data-dot]').forEach((d, j) => d.setAttribute('aria-current', String(j === i)));
   }, true);
 
+  // 作るモード: 左右にスワイプで前後の手順へ（縦のスクロールやボタンのタップとは区別する）
+  let sw = null;
+  document.addEventListener('pointerdown', e => { const b = e.target.closest && e.target.closest('[data-swipe="make"]'); sw = b && e.isPrimary ? { x: e.clientX, y: e.clientY, t: Date.now() } : null; });
+  document.addEventListener('pointerup', e => {
+    if (!sw) return;
+    const dx = e.clientX - sw.x, dy = e.clientY - sw.y, quick = Date.now() - sw.t < 700; sw = null;
+    if (!quick || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const btn = document.querySelector(dx < 0 ? '.make-foot [data-act=make-next]' : '.make-foot [data-act=make-prev]:not([disabled])');
+    if (btn && window.TSUME && TSUME.app) TSUME.app.act(btn.dataset.act, btn, e);
+  });
+  document.addEventListener('pointercancel', () => { sw = null; });
+
   // エディタ: パーツをドラッグで動かす／タップで選ぶ／爪をタップして置く
   let drag = null;
   function nailPos(svg, e) {

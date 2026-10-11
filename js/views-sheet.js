@@ -10,7 +10,32 @@
   const group = (id, title, inner) => `<section class="sheet-group" id="sheet-${id}"><h3>${esc(title)}</h3>${inner}</section>`;
   const row = items => `<div class="subopts">${items.join('')}</div>`;
 
+  // 図鑑のパーツ: 大きさ・値段・つけ方と［指にのせてみる］
+  function partSheet(st, op) {
+    const D = T.TOPPINGS, it = st.partItem, kd = it && D.KINDS[it.k]; if (!kd) return '';
+    const m = T.MATERIALS[kd.mat], name = T.toppings.fullName(it);
+    const mm = z => (Math.round(kd.mm * D.SIZES[z] * 10) / 10).toFixed(1);
+    const sizes = ['S', 'M', 'L'].filter(z => !(kd.big && z === 'S')).map(z => `<span><b class="latin">${z}</b>${mm(z)}mm</span>`).join('');
+    const prices = T.TIERS.filter(t => m && m.tiers[t]).map(t => `<div class="price-card"><span class="pk">${esc(T.TIER_INFO[t].label)}</span><span class="py latin">${m.tiers[t].y.toLocaleString()}円</span><span class="pp">${esc(m.tiers[t].p)}<br>${esc(m.tiers[t].s)}</span></div>`).join('');
+    const H = T.HOWTO && T.HOWTO.TOPPING[it.k], polish = st.sel.method === 'polish';
+    const tips = H ? (polish ? H.polish : H.gel).concat(H.tip ? [H.tip] : []) : [polish ? 'ネイルグルーを米粒ほど置き、ピンセットでのせて10秒押さえる。' : '置く場所にトップジェルを少しのせ、ピンセットで置いて硬化。', 'パーツの表面にはトップを塗らない。まわりだけ固めると輝きが残る。'];
+    const art = T.partSwatch(Object.assign({ s: 'L' }, it, it.k === 'chain' ? { r: 0 } : {}), ['charm', 'chain', 'bijou', 'flower3d'].includes(it.k) ? 30 : 20);
+    return `<div class="sheet-back${op}" data-act="sheet-close" aria-hidden="true"></div>
+      <section class="sheet part-sheet${op}" role="dialog" aria-modal="true" aria-label="${esc(name)}">
+        <header class="sheet-head"><b>${esc(name)}</b><button class="iconbtn" data-act="sheet-close" aria-label="閉じる">${ICON.close}</button></header>
+        <div class="sheet-body">
+          <div class="part-hero">${art}</div>
+          <div class="part-sizes"><span class="lab">大きさの目安</span>${sizes}</div>
+          <p class="small muted">爪の幅は約10〜14mm。値段は1袋の目安（2026年10月の調査）。</p>
+          <div class="price-cards">${prices}</div>
+          <div class="part-tips"><h3>キレイにつけるコツ（${polish ? 'マニキュア' : 'ジェル'}）</h3><ol>${tips.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>
+        </div>
+        <footer class="sheet-foot"><button class="btn rose block" data-act="part-try">${ICON.wand}指にのせてみる</button></footer>
+      </section>`;
+  }
+
   T.ui.sheet = (st, opening) => {
+    if (st.sheet === 'part') return partSheet(st, opening ? ' opening' : '');
     const s = st.sel;
     const scenes = g => T.SCENES.filter(x => x.group === g).map(x => pill(st, 'scene', x.id, x.name));
     const note = T.toppings.capNote(s);

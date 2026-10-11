@@ -10,6 +10,7 @@
     tryPick: 0, tryAmount: 'point', skin: 'natural', custom: {},
     editor: { finger: 3, side: 'left', selected: null, tab: 'stone', size: 'M', metal: 'gold', layout: null, both: true },
     sheet: null, saved: [], matTab: 'materials', matStore: 'all', season: E.seasonOf(), fx: null, sceneGroup: 'special',
+    partItem: null, make: null, checks: {},
   };
 
   // ---- 保存（端末内だけ）
@@ -17,7 +18,7 @@
   function read(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
   function write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   function load() {
-    const sv = read(K.saved, []); state.saved = Array.isArray(sv) ? sv : [];
+    const sv = read(K.saved, []); state.saved = Array.isArray(sv) ? sv.filter(x => x && typeof x === 'object' && typeof x.conceptId === 'string') : [];
     const sk = read(K.skin, 'natural'); state.skin = T.SKINS[sk] ? sk : 'natural';
     const cu = read(K.custom, {}); state.custom = sanitizeCustom(cu);
     state.saved.forEach(x => { if (x && x.toppings) x.toppings = sanitizeCustom({ k: x.toppings }).k || null; });
@@ -57,7 +58,8 @@
     // シートは .view の外に置く（.view のアニメーション中に位置がずれないように）
     const opening = !!state.sheet && !sheetWas; sheetWas = state.sheet;
     const sheet = state.sheet && T.ui.sheet ? T.ui.sheet(state, opening) : '';
-    $app.innerHTML = `<div class="view${entering ? ' enter' : ''}" data-view="${view}">${html}</div>${sheet}`;
+    // 作るモードは全画面（position: fixed）。親に transform のアニメーションがあると一瞬つぶれるので、入場の動きをつけない
+    $app.innerHTML = `<div class="view${entering && view !== 'make' ? ' enter' : ''}" data-view="${view}">${html}</div>${sheet}`;
     entering = false;
     $app.querySelectorAll('[data-keep-scroll]').forEach(el => { const k = keep[el.dataset.keepScroll]; if (k) { el.scrollLeft = k[0]; el.scrollTop = k[1]; } });
     document.body.dataset.view = view;
@@ -89,7 +91,11 @@
     if (state.sheet) { state.sheet = null; render(); return true; }
     const prev = history.pop();
     if (!prev) { if (state.view !== 'try' && state.view !== 'cover') { state.view = 'try'; entering = true; render(); return true; } return false; }
-    Object.assign(state, prev); entering = true; render(); if (hasDOM) window.scrollTo(0, 0); return true;
+    const fromMake = state.view === 'make' && state.make;
+    Object.assign(state, prev);
+    // 作るモードから作り方へ戻るときは、作るモードで進んだ手順を開く（✕ でも、端末の戻るでも同じ）
+    if (fromMake && state.view === 'detail') { state.stepIdx = fromMake.idx; state.tab = 'steps'; fromMake.celebrate = false; }
+    entering = true; render(); if (hasDOM) window.scrollTo(0, 0); return true;
   }
 
   // ---- クリックの振り分け
@@ -105,14 +111,27 @@
     enter: () => go('try'),
   });
 
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const findSaved = cur => state.saved.find(x => x.conceptId === cur.conceptId && x.paletteIndex === cur.paletteIndex);
+  function savedItem(cur) {
+    const key = T.ui.customKey(cur.conceptId, cur.paletteIndex);
+    return { id: Date.now().toString(36), conceptId: cur.conceptId, paletteIndex: cur.paletteIndex, sel: clone(state.sel), toppings: state.custom[key] ? clone(state.custom[key]) : null, skin: state.skin, ts: Date.now() };
+  }
   function saveCurrent() {
     const cur = state.current; if (!cur) return;
-    const idx = state.saved.findIndex(x => x.conceptId === cur.conceptId && x.paletteIndex === cur.paletteIndex);
+    const idx = state.saved.indexOf(findSaved(cur));
     if (idx >= 0) { state.saved.splice(idx, 1); persist(); toast('マイデザインから外しました'); return false; }
-    const key = T.ui.customKey(cur.conceptId, cur.paletteIndex);
-    state.saved.unshift({ id: Date.now().toString(36), conceptId: cur.conceptId, paletteIndex: cur.paletteIndex, sel: JSON.parse(JSON.stringify(state.sel)), toppings: state.custom[key] ? JSON.parse(JSON.stringify(state.custom[key])) : null, skin: state.skin, ts: Date.now() });
+    state.saved.unshift(savedItem(cur));
     toast(persist() ? 'マイデザインに保存しました' : 'この環境では保存できません（表示だけ）');
     return true;
+  }
+  /** 作るモードの「できた！」。保存していなければ保存し、作った日を残す（保存済みの中身は書き換えない） */
+  function markMade() {
+    const cur = state.current; if (!cur) return false;
+    let x = findSaved(cur);
+    if (!x) { x = savedItem(cur); state.saved.unshift(x); }
+    x.madeAt = Date.now();
+    return persist();
   }
   const isSaved = (conceptId, pi) => state.saved.some(x => x.conceptId === conceptId && x.paletteIndex === pi);
 
@@ -124,6 +143,6 @@
     const hash = (location.hash || '').replace('#', '');
     if (['try', 'mine', 'materials', 'colors', 'about'].includes(hash)) state.view = hash;
   }
-  T.app = { state, render, go, back, act, persist, toast, saveCurrent, isSaved, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
+  T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
   if (hasDOM) render();
 })(typeof window !== 'undefined' ? window : globalThis);
