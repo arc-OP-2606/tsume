@@ -11,7 +11,9 @@
     black: { name: 'ブラック', base: '#4A4247', dark: '#100D0F', light: '#A79BA3' },
   };
   const PEARLS = { white: { name: 'ホワイト', c0: '#FFFFFF', c1: '#F3EDE6', c2: '#C3B6AA' }, cream: { name: 'クリーム', c0: '#FFFDF5', c1: '#F1E1C2', c2: '#C2A982' }, pink: { name: 'ピンク', c0: '#FFF8F9', c1: '#F4D9DB', c2: '#C49BA0' } };
-  const METALS = { gold: { name: 'ゴールド', hex: '#D4AF5E' }, silver: { name: 'シルバー', hex: '#C9CCD4' }, rose: { name: 'ローズゴールド', hex: '#DDA293' } };
+  const METALS = { gold: { name: 'ゴールド', hex: '#D4AF5E' }, silver: { name: 'シルバー', hex: '#C9CCD4' }, rose: { name: 'ローズゴールド', hex: '#DDA293' }, white: { name: 'ホワイト', hex: '#F2EEE8' }, black: { name: 'ブラック', hex: '#3A3437' } };
+  // シールの模様（tsumé が描く汎用の形。実際の商品の絵柄は写さない）
+  const STICKERS = { ribbon: { name: 'リボン' }, flower: { name: 'お花' }, heart: { name: 'ハート' }, star: { name: '星' }, fish: { name: 'おさかな' }, shell: { name: '貝がら' }, starfish: { name: 'ヒトデ' }, hibiscus: { name: 'ハイビスカス' }, leaf: { name: 'リーフ' }, paw: { name: '肉球' }, cherry: { name: 'さくらんぼ' }, lace: { name: 'レース' } };
   const BIJOUX = { emerald: { name: 'エメラルド', hex: '#2E9B78' }, sapphire: { name: 'サファイア', hex: '#3253B5' }, ruby: { name: 'ルビー', hex: '#C62F4B' }, rose: { name: 'ローズ', hex: '#E897AE' }, clear: { name: 'クリア', hex: '#E9EEF4' }, black: { name: 'ブラック', hex: '#3A3337' } };
   const FLOWERS = { white: { name: 'ホワイト', tint: '#E9DCE0' }, pink: { name: 'ピンク', tint: '#F2B7C6' }, yellow: { name: 'イエロー', tint: '#F4D98A' } };
   const CHARMS = { star: { name: '星' }, moon: { name: '月' }, heart: { name: 'ハート' }, ribbon: { name: 'リボン' }, butterfly: { name: '蝶' }, shell: { name: '貝' }, flower: { name: '花' }, turtle: { name: '亀' } };
@@ -27,6 +29,8 @@
     bijou: { name: 'ビジュー', mat: 'bijou', minutes: 2, unit: 14, big: true, mm: 3.9 },
     flower3d: { name: '3Dフラワー', mat: 'flower3d', minutes: 2, unit: 21, big: true, mm: 5.8 },
     chain: { name: 'チェーン', mat: 'chain', minutes: 2, unit: 20, big: true, mm: 1.6 },
+    sticker: { name: 'シール', mat: 'sticker', minutes: 1, unit: 15, mm: 5, flat: true },
+    flake: { name: 'ホログラム', mat: 'flakes', minutes: 1, unit: 4.2, mm: 1.2, flat: true },
   };
   const LAYOUTS = {
     one: { name: '根元にひと粒', items: [{ x: 0.5, y: 0.8, s: 'M' }] },
@@ -76,5 +80,5 @@
     flower3d: { name: '3Dフラワー', cat: 'parts', tiers: { coin: { p: 'ネイルパーツ（フラワー）', s: 'セリア / ダイソー', y: 110 } } },
     nail_glue: { name: 'ネイルグルー', cat: 'tool', tiers: { coin: { p: 'ネイルグルー', s: 'セリア', y: 110 } } },
   });
-  T.TOPPINGS = { STONES, PEARLS, METALS, BIJOUX, FLOWERS, CHARMS, STUDS, SIZES, KINDS, TRAY, LAYOUTS, LEVELS, SCENE_RULES, NO_SCENE_RULE, MOOD_KINDS };
+  T.TOPPINGS = { STONES, PEARLS, METALS, BIJOUX, FLOWERS, CHARMS, STUDS, STICKERS, SIZES, KINDS, TRAY, LAYOUTS, LEVELS, SCENE_RULES, NO_SCENE_RULE, MOOD_KINDS };
 })(typeof window !== 'undefined' ? window : globalThis);

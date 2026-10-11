@@ -98,6 +98,7 @@ p { margin: 0; }
 .empty { text-align: center; color: var(--ink2); padding: 30px 10px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-size: 13px; box-shadow: var(--shadow); opacity: 0; transition: opacity 0.2s ease; pointer-events: none; }
 .toast.show { opacity: 1; }
+body[data-view="editor"] .toast { top: calc(env(safe-area-inset-top, 0px) + 62px); bottom: auto; }
 
 /* 選択肢のカード */
 .opt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -388,7 +389,7 @@ body.sheet-open { overflow: hidden; }
 .ed-finger .fl { font-size: 10.5px; white-space: nowrap; }
 .ed-finger[aria-pressed="true"] { background: var(--card); border-color: var(--rose-strong); color: var(--rose-strong); font-weight: 700; box-shadow: 0 4px 12px rgba(171, 90, 105, 0.14); }
 .ed-stage { position: relative; display: flex; justify-content: center; padding: 10px 0 60px; border-radius: 28px; background: var(--bg2); }
-.ed-nail { width: min(240px, 60vw); height: auto; display: block; touch-action: none; cursor: pointer; overflow: visible; }
+.ed-nail { width: min(240px, 60vw, 28vh); height: auto; display: block; touch-action: none; cursor: pointer; overflow: visible; }
 .ed-nail .tsume-top { cursor: grab; }
 .ed-ring { fill: none; stroke: var(--rose-strong); stroke-width: 1.6; stroke-dasharray: 4 4; }
 .ed-tool { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 2px 6px; border-radius: 999px; background: rgba(43, 34, 38, 0.88); box-shadow: var(--shadow-sm); }
@@ -401,11 +402,6 @@ body.sheet-open { overflow: hidden; }
 .ed-tabs::-webkit-scrollbar { display: none; }
 .ed-tabs button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 0; background: transparent; color: var(--ink2); font: inherit; font-size: 13px; cursor: pointer; }
 .ed-tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-.ed-tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 8px; }
-.ed-item { display: flex; align-items: center; justify-content: center; height: 60px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); cursor: pointer; padding: 6px; }
-.ed-item svg { width: 40px; height: 40px; }
-.ed-item[aria-pressed="true"] { border: 2px solid var(--rose-strong); background: var(--rose-soft); }
-.ed-metal { display: flex; gap: 6px; flex-wrap: wrap; }
 .ed-size { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ed-size .lab { font-size: 12.5px; color: var(--ink2); }
 .ed-size .seg { flex: 0 0 auto; width: 150px; }
@@ -537,6 +533,54 @@ body.make-open { overflow: hidden; }
 .mine-card .made { align-self: flex-start; display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; background: var(--rose-soft); color: var(--ink); font-size: 11.5px; font-weight: 700; }
 .mine-card .made svg { width: 12px; height: 12px; color: var(--rose-strong); }
 @media (prefers-reduced-motion: reduce) { .make, .make-done, .timer .tr-fg, .make-prog i { animation: none; transition: none; } }
+
+/* SHOP（アイテム）・ドラッグでのせる */
+.shop-lead { margin: -4px 0 0; }
+.shop-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px 4px; }
+.shop-tabs::-webkit-scrollbar { display: none; }
+.shop-tabs .pill { flex: 0 0 auto; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.shop-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 10px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); color: var(--ink); font: inherit; cursor: pointer; text-align: center; transition: transform 0.15s ease; }
+.shop-card:active { transform: scale(0.96); }
+.sc-art { width: 84px; height: 84px; display: block; }
+.sc-art svg, .si-art svg, .ui-art svg, .item-hero svg { width: 100%; height: 100%; display: block; }
+.sc-name { font-size: 12px; line-height: 1.4; min-height: 2.8em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sc-store { font-size: 10.5px; color: var(--ink3); }
+.item-hero { width: 150px; height: 150px; margin: 0 auto; }
+.item-name { font-size: 13px; color: var(--ink2); text-align: center; }
+.item-store { text-align: center; font-size: 14px; }
+.jan { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 8px; padding: 10px 12px; border-radius: 14px; background: var(--bg2); }
+.jan .lab { font-size: 11px; color: var(--ink3); }
+.jan b { font-family: var(--font-body); font-size: 17px; letter-spacing: 0.08em; font-variant-numeric: lining-nums tabular-nums; }
+.jan small { flex-basis: 100%; text-align: center; font-size: 11px; color: var(--ink2); }
+.ed-tabs.shop-tabs { margin: 0; padding: 3px; }
+/* SHOP のトレイは画面の下にとどめる（爪とトレイが同時に見えるように。ドラッグでのせるため） */
+.ed-shop { position: sticky; bottom: 0; z-index: 5; display: flex; flex-direction: column; gap: 4px; margin: 0 -16px; padding: 6px 16px calc(6px + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.05); }
+.shop-tray { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; }
+.shop-tray::-webkit-scrollbar { display: none; }
+.shop-item { flex: 0 0 auto; width: 76px; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 2px 6px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); color: var(--ink); font: inherit; cursor: grab; touch-action: pan-x; -webkit-user-select: none; user-select: none; }
+.shop-item:active { transform: scale(0.96); }
+.si-art { width: 58px; height: 58px; display: block; pointer-events: none; }
+.si-name { font-size: 10.5px; line-height: 1.3; height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-align: center; }
+.si-price { font-size: 9.5px; color: var(--ink3); }
+.tray-hint { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 11.5px; color: var(--ink3); margin: 2px 0 0; }
+.tray-hint svg { width: 16px; height: 16px; }
+@media (max-height: 700px) {
+  .ed-shop { gap: 2px; padding-top: 4px; }
+  .shop-item { width: 64px; }
+  .si-art { width: 46px; height: 46px; }
+  .si-price, .tray-hint { display: none; }
+}
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 70; width: 68px; height: 68px; pointer-events: none; filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.22)); }
+.drag-ghost svg { width: 100%; height: 100%; }
+body.dragging, body.dragging * { cursor: grabbing !important; }
+.ed-stage.drop-on { box-shadow: 0 0 0 3px var(--rose-strong) inset; }
+.ed-finger.drop-on { outline: 3px solid var(--rose-strong); outline-offset: 2px; }
+.used-items { display: flex; flex-direction: column; gap: 6px; }
+.used-item { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 4px 10px 4px 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.ui-art { width: 44px; height: 44px; flex: 0 0 auto; }
+.ui-t { display: flex; flex-direction: column; font-size: 13px; }
+.ui-t small { font-size: 11px; color: var(--ink3); }
 
 /* 狭い画面で見出しが途中で折れないように */
 .try-head h1 { font-size: clamp(17px, 5.6vw, 22px); white-space: nowrap; }

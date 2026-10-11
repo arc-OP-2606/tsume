@@ -443,7 +443,7 @@
     const seedKey = (opts.seed || 0) + ':' + (spec.t || '') + ':' + (spec.over || '') + ':' + (opts.finger || 0);
     const rng = mulberry32(hashStr(seedKey));
     const roles = Object.assign({}, spec.c || {});
-    const col = (role) => { const r = roles[role] || role; return palette[r] || palette[role] || '#CCCCCC'; };
+    const col = (role) => { const r = roles[role] || role; return (typeof r === 'string' && r[0] === '#') ? r : palette[r] || palette[role] || '#CCCCCC'; };
     const ctx = { L, col, rng, id, p: spec.p || {}, defs: [], out: [], matte: false };
     // nail bed
     ctx.out.push(`<rect x="-2" y="-2" width="104" height="${L + 20}" fill="#F0D2C6"/><path d="${tipRegion(L * 0.26)}" fill="#F7EAE3" opacity="0.9"/><ellipse cx="50" cy="${L - 6}" rx="22" ry="12" fill="#F8ECE6" opacity="0.7"/>`);
@@ -467,22 +467,20 @@
   }
 
   const FINGER_NAMES = ['親指', '人差し指', '中指', '薬指', '小指'];
-  const footSkin = () => (global.TSUME.SKINS && global.TSUME.SKINS.natural) || { base: '#F2D6C6', dark: '#E2B9A6', light: '#FAE6DB' };
 
   /** foot: 5 toes, big toe gets the accent spec */
   function renderFoot(specs, palette, opts) {
     opts = opts || {};
-    const id = uid(), W = 320, H = 200;
+    const W = 320, H = 200;
     const toes = [{ w: 76, top: 40, cx: 60 }, { w: 40, top: 34, cx: 134 }, { w: 36, top: 42, cx: 184 }, { w: 32, top: 56, cx: 228 }, { w: 30, top: 76, cx: 268 }];
-    const SKIN = footSkin();
-    const parts = [`<defs><linearGradient id="${id}sk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${SKIN.light}"/><stop offset="0.5" stop-color="${SKIN.base}"/><stop offset="1" stop-color="${SKIN.dark}"/></linearGradient></defs>`];
+    // 手と同じやわらかシルエット（肌は1色、輪郭だけ）
+    const SK = global.TSUME.SKINS, SKIN = (SK && (SK[opts.skin] || SK.natural)) || { base: '#F1D0BD', line: '#D4A48B' };
+    const parts = [];
     toes.forEach((f, i) => {
       const spec = specs[i] || { t: 'sheer' };
-      const { L } = nailPath('square', 'short');
       const nw = f.w * 0.74, s = nw / 100, x = f.cx - f.w / 2;
-      parts.push(`<rect x="${x}" y="${f.top}" width="${f.w}" height="${H - f.top + 40}" rx="${f.w / 2}" fill="url(#${id}sk)"/>`);
+      parts.push(`<rect x="${x}" y="${f.top}" width="${f.w}" height="${H - f.top + 40}" rx="${f.w / 2}" fill="${SKIN.base}" stroke="${SKIN.line}" stroke-width="1.6"/>`);
       parts.push(`<g transform="translate(${(f.cx - nw / 2).toFixed(1)} ${(f.top + 12).toFixed(1)}) scale(${s.toFixed(4)})">${renderNail(spec, palette, { shape: 'square', length: 'short', seed: (opts.seed || 0) + 200, finger: i })}</g>`);
-      void L;
     });
     const flip = opts.side === 'left' ? `transform="translate(${W} 0) scale(-1 1)"` : '';
     return `<svg class="tsume-hand tsume-foot" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="フットネイル"><g ${flip}>${parts.join('')}</g></svg>`;

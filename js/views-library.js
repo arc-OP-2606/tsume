@@ -22,7 +22,7 @@
       const c = byId(T.CONCEPTS, x.conceptId); if (!c) return '';
       const sel = Object.assign(E.defaults(), x.sel), d = E.build(c, sel, { season: st.season, paletteIndex: x.paletteIndex, toppings: x.toppings || undefined });
       const side = sel.hand === 'left' ? 'right' : 'left';
-      const art = d.foot ? T.renderFoot(d.foot, d.palette, { seed: 11 }) : T.renderHand(side === 'left' ? d.left : d.right, d.palette, { side, skin: x.skin || st.skin, shape: sel.shape, length: sel.length, seed: 11, viewBox: '50 50 320 380' });
+      const art = d.foot ? T.renderFoot(d.foot, d.palette, { seed: 11, skin: x.skin || st.skin }) : T.renderHand(side === 'left' ? d.left : d.right, d.palette, { side, skin: x.skin || st.skin, shape: sel.shape, length: sel.length, seed: 11, viewBox: '50 50 320 380' });
       return `<div class="mine-card"><button class="card-btn" data-act="open-saved" data-id="${x.id}"><span class="mine-art">${art}</span><b>${esc(c.name)}</b><span class="small muted">${esc(d.palette.name)} ・ ${esc(E.situation(sel, st.season).name)}</span>${Number.isFinite(x.madeAt) ? `<span class="made">${ICON.check}作った ${new Date(x.madeAt).getMonth() + 1}/${new Date(x.madeAt).getDate()}</span>` : ''}</button><button class="link" data-act="remove" data-id="${x.id}">削除</button></div>`;
     }).join('');
     return `${U.bar({ back: true, title: 'マイデザイン', right: `<span class="small muted">${st.saved.length}件</span>` })}<div class="mine-grid">${cards}</div>`;
@@ -60,6 +60,7 @@
     const prices = [['100均', sa.coin], ['専門店', sa.petit], ['ブランド', sa.luxe]].map(([k, t]) => `<div class="price-card"><span class="pk">${k}</span><span class="py latin">${t.y.toLocaleString()}円</span><span class="pp">${esc(t.p)}<br>${esc(t.s)}</span></div>`).join('');
     return `<div class="parts-book">
       <p class="small muted parts-lead">${ICON.hand}パーツを押すと、大きさ・値段・つけ方が見られて、そのまま指にのせて試せます。</p>
+      <button class="btn ghost block" data-act="nav" data-view="shop">${ICON.bag}SHOPで、セリアなどのアイテムから探す</button>
       <div class="card flat parts-card">${rows}</div>
       <div class="group-label">ストーンの値段（同じ置き方のまま）</div>
       <div class="price-cards">${prices}</div>

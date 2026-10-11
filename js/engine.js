@@ -51,7 +51,8 @@
   function specsOf(design) {
     return design.foot ? design.foot : design.left.concat(design.right);
   }
-  const techsOf = f => [f.over, f.t].concat((f.layers || []).map(l => l.t)).filter(Boolean);
+  // 全面シール（SHOP）は絵は模様のまま、作り方・材料・難しさはシールとして数える
+  const techsOf = f => (f.cover ? ['sticker_art'] : [f.over, f.t].concat((f.layers || []).map(l => l.t)).filter(Boolean));
   function hexToRgb(h) { h = h.replace('#', ''); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
   function colorDist(a, b) { const A = hexToRgb(a), B = hexToRgb(b); return Math.sqrt((A[0] - B[0]) ** 2 + (A[1] - B[1]) ** 2 + (A[2] - B[2]) ** 2) / 441; }
   function paletteDist(pal, hex) { return Math.min(colorDist(pal.base, hex), colorDist(pal.accent, hex) + 0.06, colorDist(pal.tip, hex) + 0.08); }
@@ -245,6 +246,11 @@
     const at = tid => list.findIndex(s => s.tid === tid), has = tid => !!tid && at(tid) !== -1 && at(tid) <= k;
     const baseIdx = list.findIndex(s => s.stage === 1), topIdx = list.findIndex(s => s.stage === 5), topI = at('topping');
     if (k < baseIdx) return { t: 'bare_gloss', p: { matte: true } };
+    // 全面シールは「シールを貼る」手順（sticker_art）で模様ごと現れる
+    if (spec.cover) {
+      const toppings = topI !== -1 && k >= topI ? (spec.toppings || []) : [];
+      return has('sticker_art') ? { t: spec.t, c: spec.c, p: Object.assign({}, spec.p, { matte: k < topIdx }), layers: [], toppings } : { t: 'bare_gloss', p: { matte: false }, layers: [], toppings };
+    }
     let base = null, art = null;
     if (spec.over) { base = has(spec.over) ? spec.over : null; art = has(spec.t) ? spec.t : null; }
     else if (BASE_TECHS.includes(spec.t)) base = has(spec.t) ? spec.t : null;
@@ -305,7 +311,7 @@
     L.push(design.concept.story);
     const names = T.FINGER_NAMES;
     const hands = design.foot ? [['足', design.foot]] : [['左手', design.left], ['右手', design.right]];
-    hands.forEach(([h, arr]) => { L.push(`■ ${h}`); arr.forEach((f, i) => { const t = T.TECHNIQUES[f.t]; const o = f.over ? T.TECHNIQUES[f.over] : null; const ls = (f.layers || []).map(l => (T.TECHNIQUES[l.t] || {}).name).filter(Boolean); const tp = (f.toppings || []).length && T.toppings ? T.toppings.summary([f]) : ''; L.push(`${names[i]}: ${t ? t.name : f.t}${o ? '（下地 ' + o.name + '）' : ''}${ls.length ? ' ＋ ' + ls.join('＋') : ''}${tp ? ' ／ トッピング: ' + tp : ''}`); }); });
+    hands.forEach(([h, arr]) => { L.push(`■ ${h}`); arr.forEach((f, i) => { const t = f.cover ? { name: 'ネイルシール' } : T.TECHNIQUES[f.t]; const o = f.over ? T.TECHNIQUES[f.over] : null; const ls = (f.layers || []).map(l => (T.TECHNIQUES[l.t] || {}).name).filter(Boolean); const tp = (f.toppings || []).length && T.toppings ? T.toppings.summary([f]) : ''; L.push(`${names[i]}: ${t ? t.name : f.t}${o ? '（下地 ' + o.name + '）' : ''}${ls.length ? ' ＋ ' + ls.join('＋') : ''}${tp ? ' ／ トッピング: ' + tp : ''}`); }); });
     L.push('■ 材料');
     design.materials.forEach(m => L.push(`${m.name} × ${m.qty}: ${m.product}（${m.store}）約${m.subtotal.toLocaleString()}円${m.once ? ' ※道具' : ''}`));
     L.push(`材料 約${design.cost.total.toLocaleString()}円 / 道具 約${design.cost.tools.toLocaleString()}円`);

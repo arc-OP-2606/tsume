@@ -7,7 +7,8 @@
   const methodOf = sel => (sel.method === 'polish' ? 'polish' : 'gel');
   const familyOf = tid => H.TECH_FAMILY[tid] || 'color';
   const uniq = a => Array.from(new Set(a));
-  const techsOf = f => [f.over, f.t].concat((f.layers || []).map(l => l.t)).filter(Boolean);
+  // 全面シール（SHOP）は絵は模様のまま、作り方・材料・難しさはシールとして数える
+  const techsOf = f => (f.cover ? ['sticker_art'] : [f.over, f.t].concat((f.layers || []).map(l => l.t)).filter(Boolean));
   const specsOf = d => (d.foot ? d.foot : d.left.concat(d.right));
   /** タイマーなどで手順を見分ける名前（段階や色を変えても同じ手順なら同じ） */
   const stepId = s => s.tid || s.kind || `${s.stage}:${s.title}`;

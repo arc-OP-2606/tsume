@@ -10,7 +10,7 @@
     tryPick: 0, tryAmount: 'point', skin: 'natural', custom: {},
     editor: { finger: 3, side: 'left', selected: null, tab: 'stone', size: 'M', metal: 'gold', layout: null, both: true },
     sheet: null, saved: [], matTab: 'materials', matStore: 'all', season: E.seasonOf(), fx: null, sceneGroup: 'special',
-    partItem: null, make: null, checks: {},
+    partItem: null, make: null, checks: {}, shopTab: 'color', shopItem: null, shopCycle: {},
   };
 
   // ---- 保存（端末内だけ）
@@ -23,15 +23,38 @@
     const cu = read(K.custom, {}); state.custom = sanitizeCustom(cu);
     state.saved.forEach(x => { if (x && x.toppings) x.toppings = sanitizeCustom({ k: x.toppings }).k || null; });
   }
-  // 壊れた保存データで画面が止まらないように、知らないパーツは捨てる
+  // 壊れた保存データで画面が止まらないように、知らないパーツ・塗りは捨てる。色は #rrggbb だけ（SVG にそのまま入るため）
+  const HEX = /^#[0-9a-fA-F]{6}$/, ID = /^[\w-]{1,40}$/, WORD = /^[a-z0-9_]{1,24}$/;
+  const own = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
+  const num = v => typeof v === 'number' && isFinite(v);
+  function cleanItem(t) {
+    if (!t || typeof t !== 'object' || !own(T.TOPPINGS.KINDS, t.k) || !num(t.x) || !num(t.y)) return null;
+    const o = { k: t.k, x: Math.min(1, Math.max(0, t.x)), y: Math.min(1, Math.max(0, t.y)) };
+    if (WORD.test(t.v || '')) o.v = t.v;
+    if (WORD.test(t.shape || '')) o.shape = t.shape;
+    if (own(T.TOPPINGS.SIZES, t.s)) o.s = t.s;
+    if (num(t.r)) o.r = t.r;
+    if (HEX.test(t.col || '')) o.col = t.col;
+    if (ID.test(t.shop || '')) o.shop = t.shop;
+    return o;
+  }
+  function cleanPaint(p) {
+    if (!p || typeof p !== 'object' || !own(T.TECHNIQUES, p.t) || !p.c || typeof p.c !== 'object') return null;
+    const c = {}; Object.keys(p.c).forEach(r => { if (/^[a-z]{2,8}$/.test(r) && HEX.test(p.c[r])) c[r] = p.c[r]; });
+    return { t: p.t, c, shop: ID.test(p.shop || '') ? p.shop : undefined, cover: p.cover === true };
+  }
   function sanitizeCustom(cu) {
     const out = {};
     if (!cu || typeof cu !== 'object' || Array.isArray(cu)) return out;
-    const okItem = t => t && typeof t === 'object' && T.TOPPINGS.KINDS[t.k] && typeof t.x === 'number' && typeof t.y === 'number';
     Object.keys(cu).forEach(key => {
       const c = cu[key]; if (!c || typeof c !== 'object') return;
       const sides = {};
-      ['left', 'right', 'foot'].forEach(side => { if (Array.isArray(c[side]) && c[side].length === 5) sides[side] = c[side].map(list => (Array.isArray(list) ? list.filter(okItem) : [])); });
+      ['left', 'right', 'foot'].forEach(side => { if (Array.isArray(c[side]) && c[side].length === 5) sides[side] = c[side].map(list => (Array.isArray(list) ? list.map(cleanItem).filter(Boolean) : [])); });
+      if (c.paint && typeof c.paint === 'object') {
+        const paint = {};
+        ['left', 'right', 'foot'].forEach(side => { if (Array.isArray(c.paint[side]) && c.paint[side].length === 5) paint[side] = c.paint[side].map(cleanPaint); });
+        if (Object.keys(paint).length) sides.paint = paint;
+      }
       if (Object.keys(sides).length) out[key] = sides;
     });
     return out;
@@ -141,8 +164,8 @@
     window.addEventListener('popstate', () => { back(); });
     load();
     const hash = (location.hash || '').replace('#', '');
-    if (['try', 'mine', 'materials', 'colors', 'about'].includes(hash)) state.view = hash;
+    if (['try', 'mine', 'materials', 'colors', 'about', 'shop'].includes(hash)) state.view = hash;
   }
-  T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
+  T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, sanitizeCustom, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
   if (hasDOM) render();
 })(typeof window !== 'undefined' ? window : globalThis);

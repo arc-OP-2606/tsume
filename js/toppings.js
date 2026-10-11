@@ -70,14 +70,15 @@
     }
     return out;
   }
-  /** design に toppings を入れる。opts.toppings（自分で飾った内容）があれば自動より優先 */
+  /** design に toppings を入れる。opts.toppings（自分で飾った内容）があれば自動より優先。paint（SHOPで選んだ塗り）はその指の技法と色を置き換える */
   function apply(design, sel, opts) {
     const custom = opts && opts.toppings, level = levelFor(sel);
     const mood = sel.mood || (design.concept.moods || [])[0];
     const accent = design.concept.accent == null ? 3 : design.concept.accent;
     (design.foot ? ['foot'] : ['left', 'right']).forEach(side => {
-      const specs = design[side];
-      if (custom && custom[side]) { specs.forEach((f, i) => { specs[i] = Object.assign({}, f, { toppings: clone(custom[side][i] || []) }); }); return; }
+      const specs = design[side], paint = custom && custom.paint && custom.paint[side];
+      if (paint) specs.forEach((f, i) => { const pt = paint[i]; if (pt) specs[i] = Object.assign({}, f, { t: pt.cover ? pt.t : T.engine.techForMethod(pt.t, sel.method), c: Object.assign({}, pt.c), p: {}, over: undefined, layers: [], shop: pt.shop, cover: !!pt.cover }); });
+      if (custom && custom[side]) { specs.forEach((f, i) => { specs[i] = Object.assign({}, specs[i], { toppings: clone(custom[side][i] || []) }); }); return; }
       plan(specs, design.palette, { level, mood, scene: sel.scene, accent: side === 'foot' ? 0 : accent, onlyAccent: sel.scope === 'accent' || side === 'foot' }).forEach((f, i) => { specs[i] = f; });
     });
     design.topping = { level, note: capNote(sel), custom: !!custom };
@@ -100,6 +101,8 @@
     return { title: 'トッピング', body, stage: 4, tid: 'topping' };
   }
   function itemName(t) {
+    if (t.k === 'sticker') return (D.STICKERS[t.v] || { name: '' }).name + 'のシール';
+    if (t.k === 'flake') return 'ホログラム';
     if (t.k === 'stone') return (D.STONES[t.v] || D.STONES.clear).name + 'ストーン';
     if (t.k === 'charm') return (D.METALS[t.v] || D.METALS.gold).name + 'の' + (D.CHARMS[t.shape] || D.CHARMS.star).name;
     if (t.k === 'bijou') return (D.BIJOUX[t.v] || D.BIJOUX.clear).name + 'のビジュー';

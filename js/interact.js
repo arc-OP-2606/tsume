@@ -29,6 +29,46 @@
   });
   document.addEventListener('pointercancel', () => { sw = null; });
 
+  // SHOP: トレイのアイテムを爪までドラッグ。タッチは上へ引くとドラッグ（横はトレイのスクロール）、マウスは少し動かすとドラッグ。
+  // ドラッグのあとに来る click は捨てる（タップの「今の指にのせる」と二重にならないように）
+  let dnd = null, swallowUntil = 0;
+  const clearDrop = () => document.querySelectorAll('.drop-on').forEach(x => x.classList.remove('drop-on'));
+  const endDnd = () => { if (dnd && dnd.ghost) dnd.ghost.remove(); document.body.classList.remove('dragging'); clearDrop(); dnd = null; };
+  document.addEventListener('pointerdown', e => {
+    if (dnd && dnd.ghost) return; // ドラッグ中の2本目の指は無視
+    const it = e.target.closest && e.target.closest('[data-drag="shop"]');
+    dnd = it && e.isPrimary && e.button === 0 ? { el: it, id: it.dataset.id, x0: e.clientX, y0: e.clientY, pid: e.pointerId, mouse: e.pointerType === 'mouse', ghost: null } : null;
+  });
+  document.addEventListener('pointermove', e => {
+    if (!dnd || e.pointerId !== dnd.pid) return;
+    if (dnd.mouse && !(e.buttons & 1)) { endDnd(); return; }
+    const dx = e.clientX - dnd.x0, dy = e.clientY - dnd.y0;
+    if (!dnd.ghost) {
+      if (dnd.mouse ? Math.hypot(dx, dy) < 8 : !(dy < -10 && Math.abs(dy) > Math.abs(dx))) return;
+      const g = document.createElement('div'); g.className = 'drag-ghost'; g.innerHTML = dnd.el.querySelector('.si-art').innerHTML;
+      document.body.appendChild(g); dnd.ghost = g; document.body.classList.add('dragging');
+      try { dnd.el.setPointerCapture(e.pointerId); } catch (err) {}
+    }
+    e.preventDefault();
+    dnd.ghost.style.transform = `translate(${e.clientX - 34}px, ${e.clientY - 52}px)`;
+    clearDrop();
+    const t = document.elementFromPoint(e.clientX, e.clientY), target = t && (t.closest('.ed-stage') || t.closest('.ed-finger'));
+    if (target) target.classList.add('drop-on');
+  });
+  document.addEventListener('pointerup', e => {
+    if (!dnd || e.pointerId !== dnd.pid) return;
+    if (!dnd.ghost) { dnd = null; return; }
+    const id = dnd.id; endDnd(); swallowUntil = Date.now() + 400;
+    const t = document.elementFromPoint(e.clientX, e.clientY), app = window.TSUME && TSUME.app;
+    const finger = t && t.closest('.ed-finger'), stage = t && t.closest('.ed-stage');
+    if (finger) app.act('shop-drop', null, { id, finger: +finger.dataset.i });
+    else if (stage) { const svg = stage.querySelector('svg.ed-nail'), p = svg && nailPos(svg, e); app.act('shop-drop', null, { id, pos: p && p.inside ? { x: p.x, y: p.y } : null }); }
+  });
+  document.addEventListener('pointercancel', e => { if (dnd && e.pointerId === dnd.pid) endDnd(); });
+  ['contextmenu', 'lostpointercapture'].forEach(t => document.addEventListener(t, () => { if (dnd) endDnd(); }, true));
+  window.addEventListener('blur', () => { if (dnd) endDnd(); });
+  document.addEventListener('click', e => { if (Date.now() < swallowUntil && e.target.closest && e.target.closest('[data-drag="shop"]')) { e.stopPropagation(); e.preventDefault(); } }, true);
+
   // エディタ: パーツをドラッグで動かす／タップで選ぶ／爪をタップして置く
   let drag = null;
   function nailPos(svg, e) {

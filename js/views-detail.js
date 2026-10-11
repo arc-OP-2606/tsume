@@ -15,7 +15,7 @@
     const c = d.concept;
     const pals = c.palettes.map((p, i) => `<button class="pal-dot" data-act="palette" data-i="${i}" aria-pressed="${i === d.paletteIndex}" aria-label="色 ${esc(p.name)}" style="--c1:${p.base};--c2:${p.accent}"></button>`).join('');
     const sides = d.foot ? '' : U.seg([{ id: 'left', name: '左手' }, { id: 'right', name: '右手' }], 'side', side, 'aria-label="表示する手"');
-    const overlay = `<div class="dstage-top">${sides || '<span></span>'}<div class="pal-dots" role="group" aria-label="色をずらす">${pals}</div></div><div class="dstage-bottom"><button class="chip glass" data-act="edit">${ICON.wand}トッピングを変える</button></div>`;
+    const overlay = `<div class="dstage-top">${sides || '<span></span>'}<div class="pal-dots" role="group" aria-label="色をずらす">${pals}</div></div><div class="dstage-bottom"><button class="chip glass" data-act="edit">${ICON.wand}アイテムで飾る</button></div>`;
     return U.handStage(d, { side, viewBox: d.foot ? null : '42 44 330 400', cls: 'dstage', overlay });
   }
 
@@ -25,8 +25,9 @@
     const rows = order.map(i => {
       const f = specs[i];
       const t = T.TECHNIQUES[f.t], o = f.over ? T.TECHNIQUES[f.over] : null, ls = (f.layers || []).map(l => (T.TECHNIQUES[l.t] || {}).name).filter(Boolean);
+      const item = f.shop && T.SHOP && T.SHOP.byId(f.shop), tname = (f.cover ? 'ネイルシール' : t ? t.name : f.t) + (item ? `（${T.shop.short(item)}）` : '');
       const tops = (f.toppings || []).length ? T.toppings.summary([f]) : '';
-      return `<div class="recipe-row"><span class="sw">${T.renderSwatch(f, d.palette, { shape: d.foot ? 'square' : st.sel.shape, length: d.foot ? 'short' : st.sel.length, seed: 11 + (side === 'left' ? 100 : 0), finger: i })}</span><span class="rt"><span class="fn">${esc((d.foot ? '足の' : '') + names[i])}</span><span class="ft">${esc(t ? t.name : f.t)}${o ? `<small>　下地: ${esc(o.name)}</small>` : ''}${ls.length ? `<small>　＋${esc(ls.join('＋'))}</small>` : ''}</span>${tops ? `<span class="tops">${ICON.sparkle}${esc(tops)}</span>` : ''}</span></div>`;
+      return `<div class="recipe-row"><span class="sw">${T.renderSwatch(f, d.palette, { shape: d.foot ? 'square' : st.sel.shape, length: d.foot ? 'short' : st.sel.length, seed: 11 + (side === 'left' ? 100 : 0), finger: i })}</span><span class="rt"><span class="fn">${esc((d.foot ? '足の' : '') + names[i])}</span><span class="ft">${esc(tname)}${o ? `<small>　下地: ${esc(o.name)}</small>` : ''}${ls.length ? `<small>　＋${esc(ls.join('＋'))}</small>` : ''}</span>${tops ? `<span class="tops">${ICON.sparkle}${esc(tops)}</span>` : ''}</span></div>`;
     }).join('');
     const notes = d.notes.concat(d.subs.map(x => 'マニキュア向けに置き換え: ' + x));
     if (d.topping && d.topping.note) notes.push(d.topping.note);
@@ -47,6 +48,7 @@
     const tiers = U.seg(T.TIERS.map(t => ({ id: t, name: T.TIER_INFO[t].label })), 'tier-here', s.tier, 'aria-label="予算"');
     const row = m => `<tr${m.once ? ' class="tool"' : ''}><td>${esc(m.name)}${m.qty > 1 ? ` <span class="muted">×${m.qty}</span>` : ''}<br><span class="prod">${esc(m.product)}（${esc(m.store)}）</span>${!m.once && m.upgrade && (s.tier === 'kodawari' || s.tier === 'luxe') && m.upgrade.tier !== m.tier ? `<br><span class="up">次の予算なら ${esc(m.upgrade.p)}（${esc(m.upgrade.s)}）${yen(m.upgrade.y)}</span>` : ''}</td><td class="price num">${yen(m.subtotal)}</td></tr>`;
     return `<div class="mats">
+      ${T.shop ? T.shop.used(d) : ''}
       ${tiers}
       <table class="mat-table"><thead><tr><th>素材と選ぶ商品（店）</th><th style="text-align:right">目安</th></tr></thead><tbody>
       ${cons.map(row).join('')}

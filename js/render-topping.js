@@ -175,6 +175,39 @@
     return s;
   }
 
+  // シール: 平らな形に白いふち（型抜き）と、うすい影。キラッとは光らない。単位空間 -1〜1
+  function stickerArt(motif, col) {
+    const lt = lighten(col, 0.55), dk = darken(col, 0.35);
+    switch (motif) {
+      case 'ribbon': return `<path d="${SHAPES.ribbon.d}" fill="${col}"/><ellipse cx="0" cy="0.04" rx="0.2" ry="0.24" fill="${dk}"/>`;
+      case 'heart': return `<path d="${SHAPES.heart.d}" fill="${col}"/><ellipse cx="-0.34" cy="-0.3" rx="0.16" ry="0.1" fill="${lt}" transform="rotate(-30 -0.34 -0.3)"/>`;
+      case 'star': { const p = starPts(1, 0.46); return `<polygon points="${p.map(q => f1(q[0]) + ',' + f1(q[1])).join(' ')}" fill="${col}" stroke="${col}" stroke-width="0.12" stroke-linejoin="round"/>`; }
+      case 'flower': return [0, 1, 2, 3, 4].map(i => `<circle cx="${f1(Math.cos(-Math.PI / 2 + i * 1.2566) * 0.5)}" cy="${f1(Math.sin(-Math.PI / 2 + i * 1.2566) * 0.5)}" r="0.42" fill="${col}"/>`).join('') + `<circle r="0.3" fill="#F6D77A"/>`;
+      case 'fish': return `<path d="M 0.38 0 L 0.98 -0.46 L 0.98 0.46 Z" fill="${dk}"/><ellipse cx="-0.12" cy="0" rx="0.64" ry="0.44" fill="${col}"/><circle cx="-0.46" cy="-0.08" r="0.08" fill="#2B2226"/><path d="M 0.02 -0.3 Q 0.16 0 0.02 0.3" fill="none" stroke="${lt}" stroke-width="0.07"/>`;
+      case 'shell': return `<path d="${SHAPES.shell.d}" fill="${col}"/>` + [-2, -1, 0, 1, 2].map(i => `<path d="M 0 0.78 L ${f1(i * 0.3)} -0.5" stroke="${lt}" stroke-width="0.06"/>`).join('');
+      case 'starfish': { const p = starPts(1, 0.42); return `<polygon points="${p.map(q => f1(q[0]) + ',' + f1(q[1])).join(' ')}" fill="${col}" stroke="${col}" stroke-width="0.26" stroke-linejoin="round"/>` + [[0, -0.5], [0.45, -0.12], [0.28, 0.42], [-0.28, 0.42], [-0.45, -0.12]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="0.07" fill="${lt}"/>`).join(''); }
+      case 'hibiscus': return [0, 1, 2, 3, 4].map(i => `<ellipse cx="0" cy="-0.5" rx="0.38" ry="0.52" fill="${col}" transform="rotate(${i * 72})"/>`).join('') + `<circle r="0.2" fill="${dk}"/><path d="M 0 0 L 0.32 -0.52" stroke="#F6D77A" stroke-width="0.07"/><circle cx="0.34" cy="-0.56" r="0.08" fill="#F6D77A"/>`;
+      case 'leaf': return `<path d="M 0 1 C -0.9 0.32 -0.78 -0.62 0 -1 C 0.78 -0.62 0.9 0.32 0 1 Z" fill="${col}"/><path d="M 0 0.92 L 0 -0.82 M 0 0.3 L -0.42 -0.02 M 0 0.3 L 0.42 -0.02 M 0 -0.18 L -0.34 -0.46 M 0 -0.18 L 0.34 -0.46" fill="none" stroke="${lt}" stroke-width="0.07" stroke-linecap="round"/>`;
+      case 'paw': return `<ellipse cx="0" cy="0.34" rx="0.44" ry="0.36" fill="${col}"/>` + [[-0.52, -0.14], [-0.19, -0.48], [0.19, -0.48], [0.52, -0.14]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="0.17" ry="0.21" fill="${col}"/>`).join('');
+      case 'cherry': return `<path d="M -0.3 0.18 Q -0.12 -0.36 0.14 -0.78 M 0.32 0.28 Q 0.24 -0.3 0.14 -0.78" fill="none" stroke="#5E8F4E" stroke-width="0.08" stroke-linecap="round"/><path d="M 0.14 -0.78 C 0.4 -0.98 0.72 -0.82 0.8 -0.62 C 0.5 -0.56 0.3 -0.62 0.14 -0.78 Z" fill="#7DB36A"/><circle cx="-0.32" cy="0.44" r="0.32" fill="${col}"/><circle cx="0.34" cy="0.54" r="0.32" fill="${col}"/><circle cx="-0.42" cy="0.34" r="0.08" fill="${lt}"/>`;
+      case 'lace': return [-3, -2, -1, 0, 1, 2, 3].map(k => `<circle cx="${f1(k * 0.28)}" cy="${f1(0.1 + Math.abs(k) * 0.04)}" r="0.17" fill="none" stroke="${col}" stroke-width="0.07"/><circle cx="${f1(k * 0.28)}" cy="${f1(0.1 + Math.abs(k) * 0.04)}" r="0.05" fill="${col}"/>`).join('') + `<path d="M -0.98 -0.16 Q 0 -0.04 0.98 -0.16" fill="none" stroke="${col}" stroke-width="0.09"/>`;
+      default: return `<circle r="0.8" fill="${col}"/>`;
+    }
+  }
+  function sticker(defs, size, motif, col) {
+    const S = size, art = stickerArt(motif, col || '#F2B7C6');
+    const flat = c => art.replace(/fill="(?!none)[^"]*"/g, `fill="${c}"`).replace(/stroke="[^"]*"/g, `stroke="${c}"`);
+    const edge = `<g fill="#FFFFFF" stroke="#FFFFFF" stroke-width="0.24" stroke-linejoin="round">${flat('#FFFFFF')}</g>`;
+    return `<g transform="translate(${f1(S * 0.05)} ${f1(S * 0.09)}) scale(${f1(S)})" opacity="0.16">${flat('#2A1214')}</g><g transform="scale(${f1(S)})">${edge}${art}</g>`;
+  }
+  // ホログラム（小さなハート・星）。虹色のうすい膜
+  function flake(defs, size, v) {
+    const id = uid();
+    defs.push(`<linearGradient id="${id}h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC4E1"/><stop offset="0.35" stop-color="#C4E4FF"/><stop offset="0.7" stop-color="#FFF4B8"/><stop offset="1" stop-color="#D9C4FF"/></linearGradient>`);
+    const d = v === 'star' ? `M ${starPts(1, 0.46).map(q => f1(q[0]) + ' ' + f1(q[1])).join(' L ')} Z` : SHAPES.heart.d;
+    return `<g transform="scale(${f1(size)})"><path d="${d}" fill="url(#${id}h)" stroke="#FFFFFF" stroke-width="0.14" stroke-linejoin="round"/></g>`;
+  }
+
   /** パーツ1個 → SVG（外側の g は CSS の演出用、内側の g が位置と回転） */
   function renderTopping(item, L, defs, idx, delayIdx) {
     const kd = D.KINDS[item.k]; if (!kd) return '';
@@ -190,6 +223,8 @@
       case 'flower3d': inner = flower3d(defs, size, item.v); break;
       case 'chain': inner = chain(defs, size, item.v); break;
       case 'bullion': inner = bullion(defs, size, item.v); break;
+      case 'sticker': inner = sticker(defs, size, item.v, item.col); break;
+      case 'flake': inner = flake(defs, size, item.v); break;
     }
     return `<g class="tsume-top" data-i="${idx}" data-k="${item.k}"><g class="tsume-top-pos" transform="translate(${f1(x)} ${f1(y)}) rotate(${item.r || 0})">${inner}</g></g>`;
   }

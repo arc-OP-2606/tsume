@@ -30,6 +30,7 @@
     rotate: svg('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>'),
     trash: svg('<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>'),
     wand: svg('<path d="M4 20 15 9"/><path d="M15 4v3M13.5 5.5h3M19 9v2M18 10h2M10 3v2M9 4h2"/>'),
+    bag: svg('<path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/>'),
     list: svg('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" stroke-width="2.6"/>'),
     play: svg('<path d="M8 5.5v13l10.5-6.5z"/>', 1.8),
   };
@@ -42,7 +43,7 @@
   }
   const navBtn = (view, icon, label) => `<button class="iconbtn" data-act="nav" data-view="${view}" aria-label="${label}">${icon}</button>`;
   function brandBar() {
-    return `<header class="brandbar"><button class="brand" data-act="nav" data-view="try" aria-label="tsumé のはじめの画面へ"><span class="logo latin">tsum<em>é</em></span></button><nav class="brand-nav" aria-label="メニュー">${navBtn('mine', ICON.heart, 'マイデザイン')}${navBtn('materials', ICON.book, '素材とトッピングの図鑑')}${navBtn('about', ICON.help, '使い方')}</nav></header>`;
+    return `<header class="brandbar"><button class="brand" data-act="nav" data-view="try" aria-label="tsumé のはじめの画面へ"><span class="logo latin">tsum<em>é</em></span></button><nav class="brand-nav" aria-label="メニュー">${navBtn('shop', ICON.bag, 'SHOP（アイテム）')}${navBtn('mine', ICON.heart, 'マイデザイン')}${navBtn('materials', ICON.book, '素材とトッピングの図鑑')}${navBtn('about', ICON.help, '使い方')}</nav></header>`;
   }
   function progress(n, total) {
     const segs = Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');
@@ -60,7 +61,7 @@
   function handSvg(design, o) {
     o = o || {};
     const sel = o.sel || st().sel, side = o.side || showcaseSide(sel);
-    if (design.foot) return T.renderFoot(design.foot, design.palette, { side, seed: 11 });
+    if (design.foot) return T.renderFoot(design.foot, design.palette, { side, seed: 11, skin: st().skin });
     return T.renderHand(side === 'left' ? design.left : design.right, design.palette, { side, skin: st().skin, shape: sel.shape, length: sel.length, seed: 11, viewBox: o.viewBox });
   }
   function handStage(design, o) {
