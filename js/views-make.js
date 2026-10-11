@@ -6,7 +6,9 @@
   const hasDOM = typeof document !== 'undefined';
 
   // ---- タイマーは1つだけ。表示は該当のボタンだけ書き換え、画面全体は描き直さない（開いた「失敗したら」を閉じないため）
-  const tm = { key: null, end: 0, total: 0, label: '', done: null, id: null };
+  const tm = { key: null, end: 0, total: 0, label: '', done: null, id: null, ten: false };
+  // 音声の案内（voice-guide.js）へ: start / ten（残り10秒）/ end
+  const emit = (type) => { try { window.dispatchEvent(new CustomEvent('tsume:timer', { detail: { type, label: tm.label, sec: tm.total } })); } catch (e) {} };
   const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   const running = key => tm.key === key && tm.end > Date.now();
   function stateOf(key, sec) {
@@ -24,18 +26,23 @@
       el.querySelector('.tr-sub').textContent = s.sub;
     });
   }
-  function tick() { if (tm.end - Date.now() <= 0) finish(); else paint(); }
+  function tick() {
+    const left = tm.end - Date.now();
+    if (left <= 0) return finish();
+    if (!tm.ten && tm.total >= 30 && left <= 10500) { tm.ten = true; emit('ten'); }
+    paint();
+  }
   function start(key, sec, label) {
     if (tm.id) clearInterval(tm.id);
-    Object.assign(tm, { key, end: Date.now() + sec * 1000, total: sec, label, done: null });
+    Object.assign(tm, { key, end: Date.now() + sec * 1000, total: sec, label, done: null, ten: false });
     if (hasDOM) tm.id = setInterval(tick, 200);
-    paint();
+    paint(); emit('start');
   }
   function stop() { if (tm.id) clearInterval(tm.id); Object.assign(tm, { id: null, end: 0, key: null }); paint(); }
   function finish() {
     const key = tm.key, label = tm.label;
     if (tm.id) clearInterval(tm.id); Object.assign(tm, { id: null, end: 0, done: key });
-    paint();
+    paint(); emit('end');
     try { window.dispatchEvent(new CustomEvent('tsume:done')); } catch (e) {}
     // ネイティブは tsume:done で振動するので、Web のときだけ
     try { if (!(T.native && T.native.isNative) && navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) {}
@@ -113,8 +120,9 @@
     const foot = `<button class="btn ghost" data-act="make-prev" ${k === 0 ? 'disabled' : ''}>${ICON.back}前</button>${last ? `<button class="btn rose" data-act="make-done">${ICON.sparkle}できた！</button>` : `<button class="btn" data-act="make-next">次へ${ICON.chev}</button>`}`;
     const inert = mk.celebrate ? ' inert' : '';
     return `<section class="make" aria-label="作るモード">
-      <header class="make-head"${inert}><span class="make-count latin">${k + 1} / ${list.length}</span><span class="make-name">${esc(d.concept.name)}</span><button class="iconbtn" data-act="make-close" aria-label="作るモードを終える">${ICON.close}</button></header>
+      <header class="make-head"${inert}><span class="make-count latin">${k + 1} / ${list.length}</span><span class="make-name">${esc(d.concept.name)}</span>${T.voiceGuide ? T.voiceGuide.button(st) : ''}<button class="iconbtn" data-act="make-close" aria-label="作るモードを終える">${ICON.close}</button></header>
       <div class="make-prog" aria-hidden="true"><i style="width:${(((k + 1) / list.length) * 100).toFixed(1)}%"></i></div>
+      ${T.voiceGuide ? T.voiceGuide.bar(st) : ''}
       <div class="make-body" data-swipe="make" data-keep-scroll="make-body"${inert}>
         ${chart}
         <h1 class="make-title" tabindex="-1">${esc(s.title)}</h1>
@@ -180,5 +188,5 @@
     'check-item': (el, st) => { const c = checks(st); c.done[el.dataset.i] = !c.done[el.dataset.i]; T.app.render(); },
   });
 
-  T.make = { stepDetail, timerView, timerKey, running, start, stop };
+  T.make = { stepDetail, timerView, timerKey, running, start, stop, isRunning: () => tm.end > Date.now() };
 })(typeof window !== 'undefined' ? window : globalThis);

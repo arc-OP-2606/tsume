@@ -33,6 +33,8 @@
     bag: svg('<path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/>'),
     list: svg('<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" stroke-width="2.6"/>'),
     play: svg('<path d="M8 5.5v13l10.5-6.5z"/>', 1.8),
+    voice: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
+    mic: svg('<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>'),
   };
   const st = () => T.app.state;
 
@@ -54,9 +56,12 @@
   }
   const showcaseSide = sel => (sel.hand === 'left' ? 'right' : 'left');
   const customKey = (conceptId, pi) => `${conceptId}:${pi || 0}`;
+  // 配色の番号は数字（デザイン案の配色）か 'k…'（ことばで作った配色。st.palettes にある）
+  const piOf = v => (/^k[\w-]{1,40}$/.test(String(v)) ? String(v) : (+v || 0));
   function designFor(conceptId, paletteIndex, sel) {
     const s = st(), c = byId(T.CONCEPTS, conceptId); if (!c) return null;
-    return E.build(c, sel || s.sel, { season: s.season, paletteIndex, toppings: s.custom[customKey(conceptId, paletteIndex)] });
+    const pal = typeof paletteIndex === 'string' ? (s.palettes || {})[paletteIndex] : null;
+    return E.build(c, sel || s.sel, { season: s.season, paletteIndex: pal ? paletteIndex : (typeof paletteIndex === 'string' ? 0 : paletteIndex), palette: pal || undefined, toppings: s.custom[customKey(conceptId, paletteIndex)] });
   }
   function handSvg(design, o) {
     o = o || {};
@@ -81,5 +86,5 @@
   const diff = n => `<span class="diff" aria-label="難易度 ${n} / 5">${'●'.repeat(n)}${'○'.repeat(Math.max(0, 5 - n))}</span>`;
   const accentOf = c => (c.accent == null ? 3 : c.accent);
 
-  T.ui = { esc, yen, byId, ICON, bar, brandBar, progress, seg, showcaseSide, customKey, designFor, handSvg, handStage, chart, diff, accentOf };
+  T.ui = { esc, yen, byId, ICON, bar, brandBar, progress, seg, showcaseSide, customKey, designFor, piOf, handSvg, handStage, chart, diff, accentOf };
 })(typeof window !== 'undefined' ? window : globalThis);

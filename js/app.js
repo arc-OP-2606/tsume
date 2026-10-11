@@ -11,10 +11,11 @@
     editor: { finger: 3, side: 'left', selected: null, tab: 'stone', size: 'M', metal: 'gold', layout: null, both: true },
     sheet: null, saved: [], matTab: 'materials', matStore: 'all', season: E.seasonOf(), fx: null, sceneGroup: 'special',
     partItem: null, make: null, checks: {}, shopTab: 'color', shopItem: null, shopCycle: {},
+    palettes: {}, kotoba: { text: '', result: null, busy: false }, voiceGuide: false,
   };
 
   // ---- 保存（端末内だけ）
-  const K = { saved: 'tsume.saved.v1', skin: 'tsume.skin.v1', custom: 'tsume.custom.v1' };
+  const K = { saved: 'tsume.saved.v1', skin: 'tsume.skin.v1', custom: 'tsume.custom.v1', palettes: 'tsume.palettes.v1', voice: 'tsume.voice.v1' };
   function read(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
   function write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   function load() {
@@ -22,6 +23,16 @@
     const sk = read(K.skin, 'natural'); state.skin = T.SKINS[sk] ? sk : 'natural';
     const cu = read(K.custom, {}); state.custom = sanitizeCustom(cu);
     state.saved.forEach(x => { if (x && x.toppings) x.toppings = sanitizeCustom({ k: x.toppings }).k || null; });
+    // ことばで作った配色。保存したデザインが持っている配色も戻す
+    const pl = read(K.palettes, {}); state.palettes = {};
+    Object.keys(pl || {}).forEach(k => { const p = cleanPalette(k, pl[k]); if (p) state.palettes[k] = p; });
+    state.saved.forEach(x => { if (typeof x.paletteIndex === 'string') { const p = cleanPalette(x.paletteIndex, x.palette); if (p) state.palettes[x.paletteIndex] = p; else x.paletteIndex = 0; } });
+    state.voiceGuide = read(K.voice, false) === true;
+  }
+  const ROLES = ['base', 'tip', 'accent', 'deep', 'light', 'metal'];
+  function cleanPalette(k, p) {
+    if (!/^k[\w-]{1,40}$/.test(k) || !p || typeof p !== 'object' || !ROLES.every(r => /^#[0-9a-fA-F]{6}$/.test(p[r]))) return null;
+    const o = { name: typeof p.name === 'string' ? p.name.slice(0, 30) : 'ことばの色' }; ROLES.forEach(r => { o[r] = p[r]; }); return o;
   }
   // 壊れた保存データで画面が止まらないように、知らないパーツ・塗りは捨てる。色は #rrggbb だけ（SVG にそのまま入るため）
   const HEX = /^#[0-9a-fA-F]{6}$/, ID = /^[\w-]{1,40}$/, WORD = /^[a-z0-9_]{1,24}$/;
@@ -59,7 +70,14 @@
     });
     return out;
   }
-  function persist() { const a = write(K.saved, state.saved), b = write(K.skin, state.skin), c = write(K.custom, state.custom); return a && b && c; }
+  function persist() {
+    // 配色は直近30件と、保存したデザインが使うものだけ残す
+    const open = [state.current && state.current.paletteIndex, state.kotoba && state.kotoba.result && state.kotoba.result.key]; // 開いているデザインと、最新のことばの配色は残す
+    const keepIds = new Set(state.saved.map(x => x.paletteIndex).concat(open).filter(v => typeof v === 'string').concat(Object.keys(state.palettes).slice(-30)));
+    Object.keys(state.palettes).forEach(k => { if (!keepIds.has(k)) delete state.palettes[k]; });
+    const a = write(K.saved, state.saved), b = write(K.skin, state.skin), c = write(K.custom, state.custom), d = write(K.palettes, state.palettes); write(K.voice, !!state.voiceGuide);
+    return a && b && c && d;
+  }
 
   let toastTimer = null;
   function toast(msg) {
@@ -138,7 +156,9 @@
   const findSaved = cur => state.saved.find(x => x.conceptId === cur.conceptId && x.paletteIndex === cur.paletteIndex);
   function savedItem(cur) {
     const key = T.ui.customKey(cur.conceptId, cur.paletteIndex);
-    return { id: Date.now().toString(36), conceptId: cur.conceptId, paletteIndex: cur.paletteIndex, sel: clone(state.sel), toppings: state.custom[key] ? clone(state.custom[key]) : null, skin: state.skin, ts: Date.now() };
+    const x = { id: Date.now().toString(36), conceptId: cur.conceptId, paletteIndex: cur.paletteIndex, sel: clone(state.sel), toppings: state.custom[key] ? clone(state.custom[key]) : null, skin: state.skin, ts: Date.now() };
+    if (typeof cur.paletteIndex === 'string' && state.palettes[cur.paletteIndex]) x.palette = clone(state.palettes[cur.paletteIndex]);
+    return x;
   }
   function saveCurrent() {
     const cur = state.current; if (!cur) return;
@@ -164,7 +184,7 @@
     window.addEventListener('popstate', () => { back(); });
     load();
     const hash = (location.hash || '').replace('#', '');
-    if (['try', 'mine', 'materials', 'colors', 'about', 'shop'].includes(hash)) state.view = hash;
+    if (['try', 'mine', 'materials', 'colors', 'about', 'shop', 'kotoba'].includes(hash)) state.view = hash;
   }
   T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, sanitizeCustom, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
   if (hasDOM) render();

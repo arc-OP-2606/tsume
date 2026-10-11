@@ -45,7 +45,7 @@
         ${stage}
         <div class="try-amount"><span class="lab">飾り</span>${U.seg(T.TOPPINGS.LEVELS, 'tryamount', st.tryAmount, 'aria-label="飾り（トッピング）の量"')}</div>
         <div class="try-name"><b>${U.esc(concept.name)}</b><span>${U.esc(T.toppings.summary(design.left) || '塗りだけ')}</span></div>
-        <div class="rail" data-keep-scroll="try-rail">${rail}<button class="rail-item more" data-act="nav" data-view="colors"><span class="rail-tip colors">${dots}</span><span class="rail-label">色から探す</span></button></div>
+        <div class="rail" data-keep-scroll="try-rail">${rail}<button class="rail-item more kotoba-rail" data-act="nav" data-view="kotoba"><span class="rail-tip words">${U.ICON.sparkle}</span><span class="rail-label">ことばで</span></button><button class="rail-item more" data-act="nav" data-view="colors"><span class="rail-tip colors">${dots}</span><span class="rail-label">色から探す</span></button></div>
         <div class="try-cta">
           <button class="btn rose cta" data-act="start">わたしに合うネイルを探す<small>6つの質問に答えるだけ</small></button>
           <div class="links"><button class="link" data-act="edit-try">自分で飾る${U.ICON.chev}</button><button class="link" data-act="open-try">作り方を見る${U.ICON.chev}</button></div>

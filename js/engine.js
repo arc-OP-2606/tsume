@@ -161,8 +161,10 @@
   function build(concept, sel, opts) {
     opts = opts || {};
     const season = opts.season || seasonOf(opts.date);
-    const pi = ((opts.paletteIndex == null ? 0 : opts.paletteIndex) % concept.palettes.length + concept.palettes.length) % concept.palettes.length;
-    const palette = Object.assign({ nude: NUDE }, concept.palettes[pi]);
+    // 「ことばで咲く」などで作った配色は opts.palette で渡す（paletteIndex は 'k…' の文字列）
+    const own = opts.palette && typeof opts.paletteIndex === 'string';
+    const pi = own ? opts.paletteIndex : ((opts.paletteIndex == null ? 0 : +opts.paletteIndex || 0) % concept.palettes.length + concept.palettes.length) % concept.palettes.length;
+    const palette = Object.assign({ nude: NUDE }, own ? opts.palette : concept.palettes[pi]);
     const scene = byId(T.SCENES, sel.scene);
     let left = clone(concept.fingers), right = clone(concept.right || concept.fingers);
     const notes = [];

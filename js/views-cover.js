@@ -16,6 +16,7 @@
       </div>
       <div class="cover-cta">
         <button class="btn rose big" data-act="enter">はじめる</button>
+        <button class="link cover-kotoba" data-act="nav" data-view="kotoba">${U.ICON.sparkle}ことばで咲かせる${U.ICON.chev}</button>
         <p class="cover-foot">${U.esc(s.name)}の色 ・ ${T.CONCEPTS.length}のデザイン ・ 100均から高級素材まで</p>
       </div>
     </section>`;

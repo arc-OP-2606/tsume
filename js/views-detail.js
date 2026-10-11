@@ -36,6 +36,7 @@
       <p class="palette-line"><b>${esc(d.palette.name)}</b>　<span>${esc(E.situation(st.sel, st.season).name)}</span></p>
       <p class="story">${esc(d.concept.story)}</p>
       ${U.chart(d, side)}
+      <button class="somm-btn" data-act="somm-open">${ICON.voice}<span><b>tsumé ソムリエに聞く</b><small>映える角度・光・背景を、約${T.sommelier.script(d, st.sel, st.season).sec}秒で</small></span>${ICON.chev}</button>
       <div class="recipe">${rows}</div>
       ${notes.length ? `<ul class="notes">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
       <div class="meta"><span>材料 <b class="num">${yen(d.cost.total)}</b></span><span>道具（初回） <b class="num">${yen(d.cost.tools)}</b></span><span>目安 <b class="num">${d.est.minutes}分</b></span><span>難易度 <b class="num">${d.est.difficulty}/5</b></span></div>
@@ -70,7 +71,7 @@
     const s = list[k], last = k === list.length - 1;
     return `<div class="steps-tab">
       <div class="lv-row"><span class="lab">経験</span>${U.seg(T.LEVELS, 'level-here', st.sel.level, 'aria-label="セルフネイルの経験"')}</div>
-      <button class="btn rose block make-btn" data-act="make-open" data-i="${k}"><span class="mb-row">${ICON.play}${k ? `作るモードで、手順${k + 1}から` : '作るモードで始める'}</span><small>1手順ずつ大きな文字で。タイマーつき</small></button>
+      <button class="btn rose block make-btn" data-act="make-open" data-i="${k}"><span class="mb-row">${ICON.play}${k ? `作るモードで、手順${k + 1}から` : '作るモードで始める'}</span><small>1手順ずつ大きな文字で。タイマー${T.voice.available() ? 'と音声案内' : ''}つき</small></button>
       <div class="steps-strip" data-keep-scroll="steps-strip">${strip}</div>
       <div class="step-now">
         ${s.kind ? '' : U.chart(d, side, { specs: now, marks })}

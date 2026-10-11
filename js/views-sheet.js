@@ -37,6 +37,8 @@
   T.ui.sheet = (st, opening) => {
     if (st.sheet === 'part') return partSheet(st, opening ? ' opening' : '');
     if (st.sheet === 'item') return T.shop.sheet(st, opening ? ' opening' : '');
+    if (st.sheet === 'ai-consent') return T.kotobaView.consentSheet(st, opening ? ' opening' : '');
+    if (st.sheet === 'sommelier') return T.sommelier.sheet(st, opening ? ' opening' : '');
     const s = st.sel;
     const scenes = g => T.SCENES.filter(x => x.group === g).map(x => pill(st, 'scene', x.id, x.name));
     const note = T.toppings.capNote(s);

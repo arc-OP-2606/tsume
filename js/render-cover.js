@@ -18,8 +18,19 @@
       8: [{ k: 'pearl', v: 'cream', s: 'M', x: 0.5, y: 0.8 }], 10: [{ k: 'stone', v: 'clear', s: 'M', x: 0.5, y: 0.78 }], 11: [{ k: 'bullion', v: set.metal, s: 'S', x: 0.5, y: 0.86 }],
     };
   }
+  // ことばの色で咲く花（1〜3色を、塗り方を変えながら12枚に配る）
+  function colorSet(colors) {
+    const C = T.colorUtil, at = i => colors[i % colors.length];
+    const outer = Array.from({ length: 12 }, (_, i) => {
+      const c = at(i), base = [C.mix(c, '#FFFFFF', 0.45), c, C.darken(c, 0.12)][i % 3], t = ['sheer', 'one_color', 'magnet', 'one_color', 'glass_french', 'one_color'][i % 6];
+      return t === 'magnet' ? [t, { base: c, light: C.mix(c, '#FFFFFF', 0.75) }] : t === 'glass_french' ? [t, { base: C.mix(c, '#FFFFFF', 0.8), tip: c }] : [t, { base }];
+    });
+    const warm = colors.some(c => { const n = parseInt(c.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return r > b + 20 && r >= g; });
+    return { outer, stone: warm ? 'champagne' : 'aurora', metal: warm ? 'gold' : 'silver' };
+  }
   function renderBloom(season, opts) {
-    const set = SETS[season] || SETS.autumn, size = (opts && opts.size) || 340, TP = tops(set);
+    const cs = opts && Array.isArray(opts.colors) ? opts.colors.filter(c => /^#[0-9a-fA-F]{6}$/.test(c)) : [];
+    const set = cs.length ? colorSet(cs) : SETS[season] || SETS.autumn, size = (opts && opts.size) || 340, TP = tops(set);
     const petal = (t, pal, a, shape, len, w, r0, seed, i, tp) => {
       const { L } = T.nailPath(shape, len), s = w / 100;
       return `<g class="petal" style="--i:${i}"><g transform="rotate(${a}) translate(${(-w / 2).toFixed(1)} ${(-(r0 + L * s)).toFixed(1)}) scale(${s})" filter="url(#bloomsh)">${T.renderNail({ t, toppings: tp || [] }, Object.assign({}, P0, pal), { shape, length: len, seed, finger: 0 })}</g></g>`;

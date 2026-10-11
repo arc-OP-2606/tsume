@@ -20,10 +20,11 @@
     if (!st.saved.length) return `${U.bar({ back: true, title: 'マイデザイン' })}<div class="empty card flat"><p>まだ保存したデザインはありません。</p><button class="btn rose" data-act="start">${ICON.sparkle}わたしに合うネイルを探す</button></div>`;
     const cards = st.saved.map(x => {
       const c = byId(T.CONCEPTS, x.conceptId); if (!c) return '';
-      const sel = Object.assign(E.defaults(), x.sel), d = E.build(c, sel, { season: st.season, paletteIndex: x.paletteIndex, toppings: x.toppings || undefined });
+      const sel = Object.assign(E.defaults(), x.sel), own = typeof x.paletteIndex === 'string' && st.palettes[x.paletteIndex];
+      const d = E.build(c, sel, { season: st.season, paletteIndex: own ? x.paletteIndex : (+x.paletteIndex || 0), palette: own || undefined, toppings: x.toppings || undefined });
       const side = sel.hand === 'left' ? 'right' : 'left';
       const art = d.foot ? T.renderFoot(d.foot, d.palette, { seed: 11, skin: x.skin || st.skin }) : T.renderHand(side === 'left' ? d.left : d.right, d.palette, { side, skin: x.skin || st.skin, shape: sel.shape, length: sel.length, seed: 11, viewBox: '50 50 320 380' });
-      return `<div class="mine-card"><button class="card-btn" data-act="open-saved" data-id="${x.id}"><span class="mine-art">${art}</span><b>${esc(c.name)}</b><span class="small muted">${esc(d.palette.name)} ・ ${esc(E.situation(sel, st.season).name)}</span>${Number.isFinite(x.madeAt) ? `<span class="made">${ICON.check}作った ${new Date(x.madeAt).getMonth() + 1}/${new Date(x.madeAt).getDate()}</span>` : ''}</button><button class="link" data-act="remove" data-id="${x.id}">削除</button></div>`;
+      return `<div class="mine-card"><button class="card-btn" data-act="open-saved" data-id="${esc(x.id)}"><span class="mine-art">${art}</span><b>${esc(c.name)}</b><span class="small muted">${esc(d.palette.name)} ・ ${esc(E.situation(sel, st.season).name)}</span>${Number.isFinite(x.madeAt) ? `<span class="made">${ICON.check}作った ${new Date(x.madeAt).getMonth() + 1}/${new Date(x.madeAt).getDate()}</span>` : ''}</button><button class="link" data-act="remove" data-id="${esc(x.id)}">削除</button></div>`;
     }).join('');
     return `${U.bar({ back: true, title: 'マイデザイン', right: `<span class="small muted">${st.saved.length}件</span>` })}<div class="mine-grid">${cards}</div>`;
   };
@@ -81,9 +82,12 @@
         ${card('03', '予算で素材だけ変わる', '同じ設計のまま、100均のストーンがスワロフスキーに。価格は2026年10月の調査目安。', 'mattab-open', '', 'トッピングの図鑑を見る')}
         ${card('04', '利き手は、置くだけ', '利き手側は描かず、パーツを置くだけの簡単な作り方に自動で差し替えます。', 'start', '', '質問に答える')}
         ${card('05', '作るモードで、キレイに', '経験に合わせて手順の細かさが変わります。1手順ずつ大きな文字で、硬化のタイマーつき。最後に仕上がりを5つの点で確かめます。', 'start', '', 'デザインを選ぶ')}
+        ${card('06', 'ことばで咲く', '「金木犀の帰り道」のような一行から、その色で作れる3案と名前を出します。', 'nav', 'data-view="kotoba"', 'ことばで咲かせる')}
+        ${card('07', '声で聞く', '作るモードの音声案内は、手順とタイマーを読み上げます。tsumé ソムリエは、映える角度・光・背景を約30〜60秒で話します。声は端末の読み上げです。', 'start', '', 'デザインを選ぶ')}
       </div>
+      ${T.ai.available() ? `<div class="card flat"><h3>AIで読み取る</h3><p class="small muted">「ことばで咲く」と「ソムリエ」の言い回しで、打った言葉やデザインの説明を、中継サーバーを通して Google Gemini に送ります。tsumé は保存しません。</p><div class="btnrow">${T.ai.consent() === 'yes' ? '<button class="btn ghost sm" data-act="ai-off">AIを使わない</button>' : '<button class="btn ghost sm" data-act="ai-ask">AIを使う</button>'}</div></div>` : ''}
       <div class="card flat"><h3>参考にした情報</h3><ul class="notes">${T.HOWTO.SOURCES.map(([t]) => `<li>${esc(t)}</li>`).join('')}</ul><p class="small muted">作り方は2026年10月に、ネイルの協会・公的機関・メーカー・ネイリストの情報をもとにまとめました。硬化の時間などは、お使いのライトとジェルの説明書を優先してください。</p></div>
-      <div class="card flat"><h3>価格と情報について</h3><p class="small muted">価格は2026年10月のWeb調査に基づく目安（税込）。店・時期で変わります。個人情報の収集・広告・課金はありません。保存した内容はこの端末の中だけにあります。</p></div>`;
+      <div class="card flat"><h3>価格と情報について</h3><p class="small muted">価格は2026年10月のWeb調査に基づく目安（税込）。店・時期で変わります。個人情報の収集・広告・課金はありません。保存した内容はこの端末の中だけにあります。作るモードの「声で操作する」を押したときだけ、マイクの声がブラウザの音声認識に送られます。</p></div>`;
   };
 
   Object.assign(T.actions, {

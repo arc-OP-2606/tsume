@@ -63,7 +63,7 @@
 
   Object.assign(T.actions, {
     seed: (el, st) => { st.seed += 1; if (st.view === 'proposals') { T.app.render(); const sw = document.querySelector('.swipe'); if (sw) sw.scrollTo({ left: 0 }); } else T.app.go('proposals'); },
-    open: (el, st) => { st.current = { conceptId: el.dataset.id, paletteIndex: +el.dataset.pi || 0 }; st.side = null; st.tab = 'look'; st.stepIdx = 0; T.app.go('detail'); },
-    'save-card': (el, st) => { const keep = st.current; st.current = { conceptId: el.dataset.id, paletteIndex: +el.dataset.pi || 0 }; T.app.saveCurrent(); st.current = keep; T.app.render(); },
+    open: (el, st) => { st.current = { conceptId: el.dataset.id, paletteIndex: U.piOf(el.dataset.pi) }; st.side = null; st.tab = 'look'; st.stepIdx = 0; T.app.go('detail'); },
+    'save-card': (el, st) => { const keep = st.current; st.current = { conceptId: el.dataset.id, paletteIndex: U.piOf(el.dataset.pi) }; T.app.saveCurrent(); st.current = keep; T.app.render(); },
   });
 })(typeof window !== 'undefined' ? window : globalThis);

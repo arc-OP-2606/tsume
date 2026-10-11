@@ -586,3 +586,67 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .try-head h1 { font-size: clamp(17px, 5.6vw, 22px); white-space: nowrap; }
 .q-title { font-size: clamp(19px, 6.2vw, 24px); }
 .cover-h { font-size: clamp(19px, 6vw, 23px); }
+
+/* ことばで咲く */
+.cover-kotoba { color: var(--rose-strong); font-weight: 700; letter-spacing: 0.04em; }
+.cover-kotoba svg { width: 16px; height: 16px; }
+.rail-tip.words { background: var(--rose-soft); border-color: transparent; color: var(--rose-strong); }
+.rail-tip.words svg { width: 26px; }
+.kotoba { display: flex; flex-direction: column; gap: 14px; }
+.kt-bloom { width: min(220px, 58vw); aspect-ratio: 1 / 1; align-self: center; }
+.kt-bloom .bloom { width: 100%; height: 100%; display: block; }
+.kt-lead { text-align: center; font-family: var(--font-jp-serif); font-size: 17px; }
+.kt-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.kt-input { min-width: 0; min-height: 52px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 16px; }
+.kt-input:focus { outline: none; border-color: var(--rose-strong); box-shadow: 0 0 0 3px var(--rose-soft); }
+.kt-form .btn { min-height: 52px; padding: 10px 18px; }
+.kt-ex { display: flex; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+.kt-ex::-webkit-scrollbar { display: none; }
+.kt-note { text-align: center; }
+.kt-note .link { font-size: 12.5px; color: var(--rose-strong); min-height: 32px; }
+.kt-note .link svg { width: 14px; height: 14px; }
+.kt-result { display: flex; flex-direction: column; gap: 10px; padding-top: 6px; border-top: 1px solid var(--line); }
+.kt-name { font-size: 22px; text-align: center; margin-top: 8px; }
+.kt-reason { text-align: center; color: var(--ink2); font-size: 13.5px; }
+.kt-swatches { display: flex; justify-content: center; gap: 8px; }
+.kt-swatches i { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); }
+.kt-by { text-align: center; font-size: 11.5px; color: var(--ink3); }
+.kt-busy { margin-left: 8px; color: var(--rose-strong); }
+.kt-tune { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.kt-tune .chip { min-height: 38px; padding: 2px 12px; }
+.kt-cards { display: flex; flex-direction: column; gap: 12px; }
+.kt-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius); background: var(--card); border: 1px solid var(--line); }
+.kt-card-body { display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }
+.kt-card-body b { font-family: var(--font-jp-serif); font-weight: 500; font-size: 17px; }
+.kt-card .btn { align-self: stretch; }
+.ai-sheet .notes li { font-size: 13px; }
+
+/* tsumé ソムリエ */
+.somm-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--gold-soft); background: var(--card); color: var(--ink); text-align: left; cursor: pointer; }
+.somm-btn > svg:first-child { width: 26px; height: 26px; flex: 0 0 auto; color: var(--gold-text); }
+.somm-btn > svg:last-child { width: 18px; height: 18px; flex: 0 0 auto; color: var(--ink3); margin-left: auto; }
+.somm-btn span { display: flex; flex-direction: column; line-height: 1.4; }
+.somm-btn b { font-family: var(--font-jp-serif); font-weight: 500; font-size: 15.5px; }
+.somm-btn small { font-size: 11.5px; color: var(--ink2); }
+.somm-top { display: flex; align-items: center; gap: 10px; }
+.somm-wave { display: inline-flex; align-items: center; gap: 3px; height: 22px; }
+.somm-wave i { width: 3px; height: 6px; border-radius: 2px; background: var(--gold); }
+.somm-wave.on i { animation: wave 0.9s ease-in-out infinite; }
+.somm-wave.on i:nth-child(2) { animation-delay: 0.12s; } .somm-wave.on i:nth-child(3) { animation-delay: 0.24s; } .somm-wave.on i:nth-child(4) { animation-delay: 0.36s; } .somm-wave.on i:nth-child(5) { animation-delay: 0.48s; }
+@keyframes wave { 0%, 100% { height: 6px; } 50% { height: 20px; } }
+.somm-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.somm-lines li { padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 14.5px; line-height: 1.75; transition: border-color 0.2s ease, background 0.2s ease; }
+.somm-lines li.on { border-color: var(--gold); background: var(--gold-soft); }
+.somm-k { display: block; font-size: 11px; letter-spacing: 0.12em; color: var(--gold-text); font-weight: 700; }
+
+/* 手順の音声案内（作るモード） */
+.vg-btn.on { background: var(--rose-soft); color: var(--rose-strong); }
+.make-voice { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; margin: 8px 20px 0; padding: 4px 6px 4px 12px; border-radius: 14px; background: var(--rose-soft); font-size: 12px; line-height: 1.5; }
+.make-voice > svg { width: 16px; height: 16px; flex: 0 0 auto; color: var(--rose-strong); }
+.make-voice .vg-t { flex: 1 1 0; min-width: 0; padding: 6px 0; }
+.make-voice .vg-t b { color: var(--rose-strong); margin-right: 4px; }
+.make-voice .vg-t svg { width: 13px; height: 13px; vertical-align: -2px; color: var(--rose-strong); margin-right: 2px; }
+.make-voice .link { min-height: 36px; font-size: 12px; color: var(--rose-strong); font-weight: 700; }
+.make-voice .link svg { width: 14px; height: 14px; }
+.make-voice .vg-note { flex: 1 0 100%; padding: 0 0 4px 24px; font-size: 11px; color: var(--ink2); }
+@media (prefers-reduced-motion: reduce) { .somm-wave.on i { animation: none; height: 14px; } }
