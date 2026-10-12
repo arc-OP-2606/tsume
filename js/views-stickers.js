@@ -98,7 +98,7 @@
     const word = k.tab === 'pattern' ? `<div class="mx-form st-word"><input id="st-word" class="kt-input" type="text" maxlength="40" placeholder="例：ボルドーのレオパード" value="${esc(k.word || '')}" autocomplete="off" aria-label="ことばで模様を作る"><button class="btn rose" data-act="st-word">${k.busy ? '…' : '作る'}</button></div>` : '';
     return `${U.bar({ back: true, title: 'シール工房' })}
       <section class="mix stickers">
-        <p class="mx-lead">気に入るシールが無ければ、自分で。色や形を変えてデザインし、家のプリンターで「水転写シール（デカール）用紙」に刷って貼ります。薄いので浮きにくい。</p>
+        <p class="mx-lead">気に入るシールが無ければ、自分で。色や形を変えてデザインし、家のプリンターで「水転写シール（デカール）用紙」に刷って貼ります。膜が薄いので段差が小さくなります。</p>
         <section class="mx-card">
           ${U.seg(TABS, 'st-tab', k.tab, 'aria-label="作るもの"')}
           <div class="st-edit"><div class="st-pv">${S.previewSvg(e, 150)}<button class="chip" data-act="st-vary">${ICON.refresh}少し変える</button></div><div class="st-ctl">${word}${editor}</div></div>
