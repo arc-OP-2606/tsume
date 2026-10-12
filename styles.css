@@ -332,6 +332,12 @@ body.sheet-open { overflow: hidden; }
 .pill.static { cursor: default; }
 .sheet-foot { padding: 10px 20px calc(14px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); }
 @media (prefers-reduced-motion: reduce) { .sheet, .sheet-back { animation: none; } }
+/* 読み上げの声の確認（voice.js が #app の外に置く。ソムリエのシートや作るモードの上に出す） */
+.vc-ask .sheet-back { z-index: 50; }
+.vc-ask .sheet { z-index: 51; }
+.vc-sheet .sheet-body p { font-size: 14px; line-height: 1.7; }
+.vc-sheet .sheet-foot .btn { flex: 1 1 140px; }
+.voice-card .seg { margin-top: 10px; }
 
 /* ===== 作り方 ===== */
 .dstage { height: min(300px, 74vw); }

@@ -56,7 +56,7 @@
         <div class="sheet-body">
           <p>打った言葉（色や模様の名前も）は、読み取りのときだけ tsumé の中継サーバーを通して <b>Google Gemini</b> に送られます。tsumé ソムリエの言い回しを整えるときは、デザインの説明（色・技法・シーン）を送ります。「AIでシール絵」では選んだモチーフ・描き方・色を、「写真から作り方」の「デザインから」ではデザインの説明（技法・色・パーツ）を送ります。写真を送るときは、別に確認します。tsumé は保存しません。</p>
           <p class="ai-age"><b>AI は18歳以上の方だけ</b>が使えます（Google の利用規約）。使わなくても、辞書で動きます。</p>
-          <ul class="notes"><li>人の名前・住所など、個人がわかることは入れないでください（「〜さん」は自動で伏せます）。</li><li>AIが使えないときは、辞書で読み取ります。</li><li>あとから「使い方」でオフにできます。</li></ul>
+          <ul class="notes"><li>人の名前・住所など、個人がわかることは入れないでください（「〜さん」は自動で伏せます）。</li><li>AIが使えないときは、辞書で読み取ります。</li><li>読み上げ（手順・ソムリエなど）も、読む文を Gemini に送って自然な声にします（「使い方」で端末の声に変えられます）。</li><li>あとから「使い方」でオフにできます。</li></ul>
         </div>
         <footer class="sheet-foot btnrow"><button class="btn ghost" data-act="ai-consent" data-v="no">使わない</button><button class="btn rose" data-act="ai-consent" data-v="yes">18歳以上・AIを使う</button></footer>
       </section>`;

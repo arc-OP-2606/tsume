@@ -1,6 +1,6 @@
 /* tsumé — 音声 tsumé ソムリエ（サンプル）。選んだ色・技法・トッピング・シーンを1つのパッケージとして、
    印象と「映える」角度・光・背景・撮り方を30〜60秒で語る。中身は知識（下の FACTS）から組み、AI（Gemini）は言い回しだけを整える。
-   声は端末の読み上げ（外に送らない） */
+   声は voice.js（同意した人は自然な声 'sommelier'＝Gemini。それ以外は端末の読み上げ）。シートを開いたら、同意がある人だけ声を先に取っておく */
 (function (global) {
   'use strict';
   const T = global.TSUME, E = T.engine, U = T.ui;
@@ -84,6 +84,13 @@
   }
 
   // ---- シート（読み上げと、読んでいる文の強調）
+  /* 声がどこで作られるかを、実際の動きのとおりに書く */
+  function voiceNote() {
+    const way = T.voice.route ? T.voice.route() : 'device';
+    if (way === 'natural') return '声は Google の AI（Gemini）で作る自然な声です（読み上げる文を中継サーバー経由で送ります。「使い方」で端末の声に変えられます）。';
+    if (way === 'ask') return '聞くときに、自然な声（Google の AI・Gemini で作る）か、端末の声（外には送りません）かを選べます。';
+    return '声は端末の読み上げです（外には送りません）。';
+  }
   const LABEL = { intro: '印象', scene: 'シーンの光', angle: '映える角度', light: '映える光', bg: '背景・紙', shot: 'おすすめの1枚' };
   function sheet(st, op) {
     const s = st.somm; if (!s) return '';
@@ -94,7 +101,7 @@
         <div class="sheet-body">
           <div class="somm-top"><span class="somm-wave${s.playing ? ' on' : ''}" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><span class="small muted">約${s.sec}秒${s.ai ? `・言い回し: AI（${esc(s.ai)}）` : ''}${s.busy ? '・AIで整えています…' : ''}</span></div>
           <ol class="somm-lines">${s.lines.map((l, i) => `<li data-i="${i}"><span class="somm-k">${LABEL[l.k] || ''}</span>${esc(l.text)}</li>`).join('')}</ol>
-          <p class="small muted">${can ? '声は端末の読み上げです（外には送りません）。' : 'この端末では読み上げが使えないので、文字でご覧ください。'}</p>
+          <p class="small muted">${can ? voiceNote() : 'この端末では読み上げが使えないので、文字でご覧ください。'}</p>
         </div>
         <footer class="sheet-foot">${can ? `<button class="btn rose block" data-act="somm-play">${s.playing ? '■ 止める' : `${ICON.play}聞く（約${s.sec}秒）`}</button>` : ''}</footer>
       </section>`;
@@ -104,18 +111,20 @@
     const s = st.somm; if (!s) return;
     if (s.playing) { T.voice.stop(); s.playing = false; T.app.render(); return; }
     s.playing = true; T.app.render();
-    T.voice.speak(s.lines.map(l => l.text), { onLine: mark, onEnd: () => { s.playing = false; if (st.sheet === 'sommelier') T.app.render(); } });
+    const ok = T.voice.speak(s.lines.map(l => l.text), { voice: 'sommelier', onLine: mark, onEnd: () => { s.playing = false; if (st.sheet === 'sommelier') T.app.render(); } });
+    if (!ok) { s.playing = false; T.app.render(); T.app.toast('この端末では読み上げできません'); }
   }
+  const warm = s => { if (T.voice.warm && s && !s.playing) T.voice.warm(s.lines.map(l => l.text), { voice: 'sommelier' }); };
   Object.assign(T.actions, {
     'somm-open': async (el, st) => {
       const d = st.current && U.designFor(st.current.conceptId, st.current.paletteIndex); if (!d) return;
       const base = script(d, st.sel, st.season);
       const mine = st.somm = Object.assign({ playing: false, busy: T.ai.usable(), ai: null }, base); st.sheet = 'sommelier'; T.app.render();
-      if (!mine.busy) return;
+      if (!mine.busy) { warm(mine); return; }
       const r = await polish(base);
       if (st.somm !== mine || st.sheet !== 'sommelier') return; // 待つ間に閉じた・別のデザインで開き直した
       mine.busy = false; if (r && !mine.playing) Object.assign(mine, { lines: r.lines, sec: r.sec, ai: r.model });
-      T.app.render();
+      T.app.render(); warm(mine); // 読む文が決まってから、声を先に取っておく
     },
     'somm-play': (el, st) => play(st),
     'somm-close': (el, st) => { T.voice.stop(); if (st.somm) st.somm.playing = false; st.sheet = null; T.app.render(); },

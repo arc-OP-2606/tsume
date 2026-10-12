@@ -1,4 +1,5 @@
 /* tsumé — 手順の音声案内（作るモード）。両手がふさがっていても、手順とタイマーを声で聞ける。
+   声は voice.js（同意した人は自然な声＝Gemini、それ以外は端末の読み上げ）。音声案内がオフでも、同意がある人には表示中の手順の声を先に取っておく。
    声の合図（つぎ・まえ・もう一回・スタート・ストップ・できた）は音声認識が使える端末だけ、本人が押したときだけ */
 (function (global) {
   'use strict';
@@ -10,7 +11,7 @@
   // 読み上げの声をマイクが拾って「次」などと誤って動かないよう、話している間と直後は合図を聞き流す
   let hush = 0;
   const quiet = () => { hush = Date.now() + 1200; };
-  function say(lines) { if (!on()) return; quiet(); V.speak(lines, { rate: 0.98, onLine: quiet, onEnd: quiet }); }
+  function say(lines, after) { if (!on()) return; quiet(); V.speak(lines, { rate: 0.98, onLine: quiet, onEnd: () => { quiet(); if (after) after(); } }); }
 
   const sec = n => (n < 60 ? `${n}秒` : `${Math.floor(n / 60)}分${n % 60 ? `${n % 60}秒` : ''}`);
   const designOf = s => (s.current ? U.designFor(s.current.conceptId, s.current.paletteIndex) : null);
@@ -30,10 +31,16 @@
     if (step.timer) out.push(`タイマーは${sec(step.timer.sec)}。${listening ? '塗り終わったら「スタート」と言ってください。' : '塗り終わったら、タイマーを押してください。'}`);
     return out;
   }
+  /** タイマーの声（下の tsume:timer と同じ文）。時刻に合わせて鳴らす文なので、自然な声は先に取っておく（初めての文は作るのに数秒かかる） */
+  function timerLines(d, k) {
+    const t = d.steps[k] && d.steps[k].timer;
+    return t ? [`スタート。${sec(t.sec)}です。`].concat(t.sec >= 30 ? ['あと10秒。'] : [], [`${strip(t.label)}、終わりました。`]) : [];
+  }
   function readStep() {
     const s = st(), d = designOf(s); if (!d || !s.make) return;
     if (s.make.celebrate) return say(['キレイにできました。おつかれさまでした。']);
-    say(lines(s, d, s.make.idx));
+    const k = s.make.idx;
+    say(lines(s, d, k), () => { if (V.warm && timerLines(d, k).length) V.warm(timerLines(d, k)); }); /* 読み終えてから（すぐ次へ進んだ手順では取らない） */
   }
 
   // ---- 声の合図
@@ -72,14 +79,23 @@
     return `<div class="make-voice" role="group" aria-label="音声案内">${ICON.voice}${body}</div>`;
   }
 
+  // 音声案内がオフのときは、手順を開いて少し置いてから、その手順の声を先に取っておく（同意がある人だけ。voice.js の warm が確かめる）。
+  // すぐ次へ進んだ手順は取らない。オンのときは読み上げそのものが取りに行く
+  let warmT = null;
+  function warmLater() {
+    clearTimeout(warmT);
+    if (!V.warm) return;
+    warmT = setTimeout(() => { const s = st(), d = designOf(s); if (s.view !== 'make' || !s.make || s.make.celebrate || !d || on()) return; V.warm(lines(s, d, s.make.idx)); }, 1500);
+  }
+
   // ---- 手順が変わったら読む・作るモードを出たら止める
   let lastKey = null;
   if (hasDOM) {
     window.addEventListener('tsume:render', e => {
       const view = e.detail && e.detail.view, s = st();
-      if (view !== 'make') { if (lastKey !== null) { V.stop(); setListen(false); } lastKey = null; return; }
+      if (view !== 'make') { if (lastKey !== null) { V.stop(); setListen(false); } lastKey = null; clearTimeout(warmT); return; }
       const key = s.make && s.make.celebrate ? 'done' : `${s.current && s.current.conceptId}:${s.make && s.make.idx}`;
-      if (key !== lastKey) { lastKey = key; if (on()) readStep(); }
+      if (key !== lastKey) { lastKey = key; if (on()) readStep(); else warmLater(); }
     });
     window.addEventListener('tsume:timer', e => {
       if (!on() || st().view !== 'make') return;
