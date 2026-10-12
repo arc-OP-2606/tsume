@@ -54,13 +54,23 @@
     if (it.k === 'flower3d') return D.FLOWERS[it.v].name;
     return 'チェーン' + metal;
   }
-  function partsBook() {
+  U.partLabel = partLabel;
+  const sameItem = (a, b) => a.k === b.k && a.v === b.v && (a.shape || '') === (b.shape || '');
+  /** 選んだパーツ（まとめて1つの爪にのせる） */
+  function basketBar(st) {
+    const b = st.partBasket || []; if (!b.length) return '';
+    const total = b.reduce((n, x) => n + x.n, 0);
+    const chips = b.map((x, i) => `<button class="chip basket-chip" data-act="part-basket-del" data-i="${i}" aria-label="${esc(partLabel(x.item))}を外す"><span class="basket-art">${T.partSwatch(Object.assign({ s: 'L' }, x.item, x.item.k === 'chain' ? { r: 0 } : {}), 13)}</span>${esc(partLabel(x.item))}×${x.n}${ICON.close}</button>`).join('');
+    return `<div class="parts-basket" role="region" aria-label="選んだパーツ"><div class="basket-head"><b>選んだパーツ（${total}個）</b><button class="link" data-act="part-basket-clear">空にする</button></div><div class="basket-chips">${chips}</div><button class="btn rose block" data-act="part-basket-go">${ICON.wand}まとめて爪にのせる（${total}個）</button></div>`;
+  }
+  function partsBook(st) {
     const btn = it => `<button class="part" data-act="part-open" data-k="${it.k}" data-v="${it.v}" data-shape="${it.shape || ''}" aria-label="${esc(T.toppings.fullName(it))}：大きさ・値段・つけ方"><span class="part-art">${T.partSwatch(Object.assign({ s: BOOK_SIZE[it.k] }, it, it.k === 'chain' ? { r: 0 } : {}), 17)}</span><span class="part-name">${esc(partLabel(it))}</span></button>`;
     const rows = D.TRAY.map(t => `<div class="parts-row"><h3>${esc(BOOK_TITLE[t.id] || t.name)}</h3><div class="parts-grid">${t.items.map(btn).join('')}</div></div>`).join('');
     const sa = T.MATERIALS.stone_accent.tiers;
     const prices = [['100均', sa.coin], ['専門店', sa.petit], ['ブランド', sa.luxe]].map(([k, t]) => `<div class="price-card"><span class="pk">${k}</span><span class="py latin">${t.y.toLocaleString()}円</span><span class="pp">${esc(t.p)}<br>${esc(t.s)}</span></div>`).join('');
     return `<div class="parts-book">
-      <p class="small muted parts-lead">${ICON.hand}パーツを押すと、大きさ・値段・つけ方が見られて、そのまま指にのせて試せます。</p>
+      <p class="small muted parts-lead">${ICON.hand}パーツを押すと、大きさ・値段・つけ方が見られます。いくつでも、何種類でも選んで、1つの爪にまとめてのせられます。</p>
+      ${basketBar(st)}
       <button class="btn ghost block" data-act="nav" data-view="shop">${ICON.bag}SHOPで、セリアなどのアイテムから探す</button>
       <div class="card flat parts-card">${rows}</div>
       <div class="group-label">ストーンの値段（同じ置き方のまま）</div>
@@ -70,7 +80,7 @@
   }
   T.views.materials = st => {
     const tabs = U.seg([{ id: 'materials', name: '素材' }, { id: 'toppings', name: 'トッピング' }].concat(T.brushes ? [{ id: 'brushes', name: '筆' }] : []), 'mattab', st.matTab, 'aria-label="図鑑の切り替え"');
-    const body = st.matTab === 'toppings' ? partsBook() : st.matTab === 'brushes' && T.brushes ? T.brushes.book(st) : materialsList(st);
+    const body = st.matTab === 'toppings' ? partsBook(st) : st.matTab === 'brushes' && T.brushes ? T.brushes.book(st) : materialsList(st);
     return `${U.bar({ back: true, title: '図鑑' })}<div class="tabs">${tabs}</div>${body}`;
   };
 
@@ -113,16 +123,31 @@
     'mattab-open': (el, st) => { st.matTab = 'toppings'; T.app.go('materials'); },
     'part-open': (el, st) => { const it = { k: el.dataset.k, v: el.dataset.v }; if (el.dataset.shape) it.shape = el.dataset.shape; st.partItem = it; st.sheet = 'part'; T.app.render(); },
     // エディタから図鑑に来たときはエディタへ戻る（指の選択を保つ）。それ以外は見せ場の指で開く
-    'part-try': (el, st) => {
+    'part-n': (el, st) => { st.partN = Math.max(1, Math.min(5, +el.dataset.v || 1)); T.app.render(); },
+    // 今のパーツを「選んだパーツ」に入れて、図鑑に戻る（ほかのパーツも選べる）
+    'part-more': (el, st) => {
       const it = st.partItem; if (!it) return;
-      const from = T.app.peek(), fromEditor = from === 'editor';
-      st.sheet = null;
-      // 試着の画面から来たときは、そこで選んでいるデザインにのせる
-      if ((!st.current || from === 'try') && T.tryAdopt) T.tryAdopt(st);
-      if (!fromEditor) T.editor.enter(st);
-      T.editor.addPart(st, it); st.fx = 'pop';
-      if (fromEditor) T.app.back(); else T.app.go('editor');
-      T.app.toast(`${T.FINGER_NAMES[st.editor.finger] || '親指'}にのせました。ドラッグで動かせます`);
+      const b = st.partBasket = st.partBasket || [], n = st.partN || 1, has = b.find(x => sameItem(x.item, it));
+      if (has) has.n = Math.min(T.editor.MAX_PARTS, has.n + n); else b.push({ item: Object.assign({}, it), n });
+      st.sheet = null; st.partN = 1; T.app.render();
+      T.app.toast(`${partLabel(it)}を${n}個選びました。ほかのパーツも押して選べます`);
     },
+    'part-basket-del': (el, st) => { (st.partBasket || []).splice(+el.dataset.i, 1); T.app.render(); },
+    'part-basket-clear': (el, st) => { st.partBasket = []; T.app.render(); },
+    'part-basket-go': (el, st) => putParts(st, []),
+    'part-try': (el, st) => { const it = st.partItem; if (!it) return; putParts(st, [{ item: Object.assign({}, it), n: st.partN || 1 }]); },
   });
+  /** 選んだパーツ（と今のパーツ）を、今の指にまとめてのせてエディタへ。エディタから来たときはエディタへ戻る（指の選択を保つ） */
+  function putParts(st, extra) {
+    const list = (st.partBasket || []).concat(extra).filter(x => x && x.n > 0); if (!list.length) return;
+    const from = T.app.peek(), fromEditor = from === 'editor';
+    st.sheet = null;
+    // 試着の画面から来たときは、そこで選んでいるデザインにのせる
+    if ((!st.current || from === 'try') && T.tryAdopt) T.tryAdopt(st);
+    if (!fromEditor) T.editor.enter(st);
+    const n = T.editor.addMany(st, list); st.fx = 'pop';
+    st.partBasket = []; st.partN = 1; st.shopTab = 'book';
+    if (fromEditor) T.app.back(); else T.app.go('editor');
+    if (n) T.app.toast(`${T.FINGER_NAMES[st.editor.finger] || '親指'}に${n}個のせました。ドラッグで動かせます。下の「図鑑のパーツ」からも足せます`);
+  }
 })(typeof window !== 'undefined' ? window : globalThis);

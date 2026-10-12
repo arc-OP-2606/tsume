@@ -106,14 +106,29 @@
       </section>`;
   }
   /** エディタ下のトレイ（ドラッグ・タップ） */
+  const BOOK = { id: 'book', name: '図鑑のパーツ' };
+  const BOOK_SIZE = { stone: 'L', pearl: 'L', bullion: 'S', stud: 'L', charm: 'S', bijou: 'S', flower3d: 'S', chain: 'S' }; // 図鑑（views-library.js）と同じ見え方
+  /** トレイの「図鑑のパーツ」: ストーン・パール・メタルなどを種類ごとに。タップするたびに1つ足す */
+  function bookTray(st) {
+    const D = T.TOPPINGS, g = D.TRAY.find(t => t.id === st.editor.tab) || D.TRAY[0];
+    const label = it => (U.partLabel ? U.partLabel(it) : T.toppings.fullName(it));
+    const groups = D.TRAY.map(t => `<button class="chip" data-act="ed-booktab" data-v="${t.id}" aria-pressed="${t.id === g.id}">${esc(t.name)}</button>`).join('');
+    const items = g.items.map(it => `<button class="shop-item" data-act="ed-add" data-k="${it.k}" data-v="${it.v}" data-shape="${it.shape || ''}" data-drag="shop" data-id="book:${it.k}:${it.v}:${it.shape || ''}" aria-label="${esc(label(it))}をのせる"><span class="si-art si-part">${T.partSwatch(Object.assign({ s: BOOK_SIZE[it.k] || 'M' }, it, it.k === 'chain' ? { r: 0 } : {}), 17)}</span><span class="si-name">${esc(label(it))}</span></button>`).join('');
+    return `<div class="ed-book-groups" data-keep-scroll="ed-book-groups">${groups}</div><div class="shop-tray" data-keep-scroll="shop-tray-book-${g.id}">${items}</div>`;
+  }
   function tray(st) {
-    const cats = [MINE].concat(S.CATS), tab = cats.find(c => c.id === st.shopTab) || S.CATS[0];
+    const cats = [MINE, BOOK].concat(S.CATS), tab = cats.find(c => c.id === st.shopTab) || S.CATS[0];
+    if (tab.id === 'book') {
+      return `<div class="ed-shop"><div class="ed-tabs shop-tabs" role="group" aria-label="SHOPの種類" data-keep-scroll="ed-shop-tabs">${cats.map(c => `<button data-act="shop-tab" data-v="${c.id}" aria-pressed="${c.id === tab.id}">${esc(c.name)}</button>`).join('')}</div>
+      ${bookTray(st)}
+      <p class="tray-hint">${ICON.hand}タップするたびに1つ足せます（爪までドラッグしても置けます）</p></div>`;
+    }
     const items = tab.id === 'mine' ? ownedItems(st) : S.ITEMS.filter(x => x.cat === tab.id);
     const extra = tab.id === 'mine' && T.scan && T.scan.trayItems ? T.scan.trayItems(st) : '';
     const none = tab.id === 'mine' && !items.length && !extra ? '<p class="tray-empty small muted">SHOP の各アイテムの［持ってる］で入れると、ここに並びます。</p>' : '';
     return `<div class="ed-shop"><div class="ed-tabs shop-tabs" role="group" aria-label="SHOPの種類" data-keep-scroll="ed-shop-tabs">${cats.map(c => `<button data-act="shop-tab" data-v="${c.id}" aria-pressed="${c.id === tab.id}">${esc(c.name)}</button>`).join('')}</div>
       ${none}<div class="shop-tray" data-keep-scroll="shop-tray-${tab.id}">${extra}${items.map(it => `<button class="shop-item" data-act="shop-add" data-id="${it.id}" data-drag="shop" aria-label="${esc(short(it))}をのせる"><span class="si-art">${T.renderItem(it)}</span><span class="si-name">${esc(short(it))}</span><span class="si-price">${esc(it.store)}</span></button>`).join('')}</div>
-      <p class="tray-hint">${ICON.hand}爪までドラッグ、またはタップでのせる</p></div>`;
+      <p class="tray-hint">${ICON.hand}爪までドラッグ、またはタップでのせる（いくつでも足せます）</p></div>`;
   }
   /** このデザインで使うアイテム（材料タブ） */
   function used(d) {
@@ -130,10 +145,11 @@
 
   Object.assign(T.actions, {
     'shop-tab': (el, st) => { st.shopTab = el.dataset.v; T.app.render(); },
+    'ed-booktab': (el, st) => { st.editor.tab = el.dataset.v; T.app.render(); },
     'shop-own': (el, st) => { const it = S.byId(el.dataset.id); if (!it) return; const on = toggleOwned(st, it); T.app.render(); T.app.toast(on ? '「持ってる」に入れました' : '「持ってる」から外しました'); },
     'shop-open': (el, st) => { st.shopItem = el.dataset.id; st.sheet = 'item'; T.app.render(); },
     'shop-add': (el, st) => { const msg = apply(st, el.dataset.id); if (msg) { T.app.render(); T.app.toast(msg); } },
-    'shop-drop': (el, st, p) => { if (p.finger != null) { st.editor.finger = p.finger; st.editor.selected = null; } const msg = (T.scan && T.scan.drop && T.scan.drop(st, p.id, p.pos)) || apply(st, p.id, p.pos); if (msg) { T.app.render(); T.app.toast(msg); } },
+    'shop-drop': (el, st, p) => { if (p.finger != null) { st.editor.finger = p.finger; st.editor.selected = null; } const msg = (/^book:/.test(p.id || '') ? T.editor.dropBook(st, p.id, p.pos) : (T.scan && T.scan.drop && T.scan.drop(st, p.id, p.pos)) || apply(st, p.id, p.pos)); if (msg) { T.app.render(); T.app.toast(msg); } },
     // シートの［爪にのせる］。試着の画面から開いた SHOP なら試着のデザインに、作り方（材料）から開いたなら今のデザインにのせる
     'shop-try': (el, st) => {
       const id = el.dataset.id;

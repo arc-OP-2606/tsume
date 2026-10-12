@@ -1,6 +1,6 @@
-/* tsumé — ギャラリー。「みんなのデザイン」（F6: 運営が選んだ作品。gallery.json）と「投稿」（F7: 承認制。中継の /v1/gallery）。
-   隠し画面 #gallery-admin（管理キーで審査）。写真は送らない。中継が無い・通信できないときは「今は見られません」。
-   作品は手の絵（受け取った人の肌の色）で描き、押すと試着（T.share.open） */
+/* tsumé — ギャラリー。「みんなのデザイン」（F6: 運営が選んだ作品。gallery.json）と「投稿」（F7: 中継の /v1/gallery。
+   中継の AI が ok なら即公開、迷えば審査待ち）。隠し画面 #gallery-admin（管理キーで審査・投稿禁止）。写真は送らない。
+   中継が無い・通信できないときは「今は見られません」。作品は手の絵（受け取った人の肌の色）で描き、押すと試着（T.share.open） */
 (function (global) {
   'use strict';
   const T = global.TSUME;
@@ -8,8 +8,9 @@
   T.actions = T.actions || {};
   const hasDOM = typeof document !== 'undefined';
   const PICKS_WEB = './gallery.json', PICKS_APP = 'https://arc-op-2606.github.io/tsume/gallery.json';
-  const CONTACT = 'matsumoto@arc-edu.com'; // privacy.html のお問い合わせ先と同じ
-  const K = { prefs: 'tsume.gallery.v1', device: 'tsume.device.v1', admin: 'tsume.admin.v1' };
+  const CONTACT = 'studio.colors.y@gmail.com'; // privacy.html・pages/terms.html のギャラリーの窓口と同じ
+  const TERMS = 'https://arc-op-2606.github.io/tsume-privacy/terms.html';
+  const K ={ prefs: 'tsume.gallery.v1', device: 'tsume.device.v1', admin: 'tsume.admin.v1' };
   const REASONS = [
     { id: 'personal', name: '名前・顔・写真など、個人がわかる' },
     { id: 'rights', name: 'キャラクター・ロゴ・人の作品のまね' },
@@ -17,7 +18,10 @@
     { id: 'spam', name: '宣伝・ネイルと関係ない' },
     { id: 'other', name: 'そのほか' },
   ];
-  const MOD = { approve: '載せました', hide: '隠しました', delete: '消しました' };
+  const MOD = { approve: '載せました', hide: '隠しました', delete: '消しました', ban: '投稿禁止にしました。この人の投稿は全部隠しました' };
+  const MOD_BTN = { approve: '載せる', hide: '隠す', delete: '消す', ban: '投稿禁止' };
+  const CONFIRM = { delete: ['もう一度で消す', '消すときは、もう一度押してください'], ban: ['もう一度で禁止', '投稿禁止にするときは、もう一度押してください（この人の投稿は全部隠れます）'] };
+  const AI_NAME = { ok: 'OK', ng: 'NG', unsure: '迷い' };
   // gallery.json が読めないときの内蔵（gallery.json の最初の4件と同じ。test/share.test.js で同じか確かめる）
   const BUILTIN = /*BUILTIN*/[
     {"id":"p-glass-drop","title":"お呼ばれの硝子","by":"tsumé 編集部","note":"根元にパールとオーロラのストーン。式でも上品な量です。","design":{"v":1,"conceptId":"glass_drop","paletteIndex":1,"sel":{"scene":"wedding_guest","tier":"petit","mood":"classic","topping":"point","length":"medium","shape":"almond","scope":"full","hand":"right","method":"gel","time":"t60","level":"some"},"custom":{"left":[[],[{"k":"pearl","x":0.5,"y":0.82,"s":"S","v":"white"}],[{"k":"stone","x":0.5,"y":0.8,"s":"M","v":"aurora"}],[{"k":"pearl","x":0.33,"y":0.83,"s":"S","v":"white"},{"k":"stone","x":0.5,"y":0.79,"s":"M","v":"aurora"},{"k":"pearl","x":0.67,"y":0.83,"s":"S","v":"white"}],[]],"right":[[],[{"k":"pearl","x":0.5,"y":0.82,"s":"S","v":"white"}],[{"k":"stone","x":0.5,"y":0.8,"s":"M","v":"aurora"}],[{"k":"pearl","x":0.33,"y":0.83,"s":"S","v":"white"},{"k":"stone","x":0.5,"y":0.79,"s":"M","v":"aurora"},{"k":"pearl","x":0.67,"y":0.83,"s":"S","v":"white"}],[]]},"skin":"natural"}},
@@ -27,6 +31,7 @@
   ];
 
   const num = v => typeof v === 'number' && isFinite(v);
+  const own = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k);
   const IDRE = /^[\w-]{1,64}$/;
   const S = () => T.share;
   const esc = s => T.ui.esc(s);
@@ -57,7 +62,7 @@
   // ---- 状態（画面を開いている間だけ。保存しない）
   const gs = st => st.gallery || (st.gallery = { tab: 'picks', picks: null, picksFrom: null, picksBusy: false, posts: null, next: null, postsState: 'idle', postsBusy: false, link: '' });
   const gp = st => st.glPost || (st.glPost = { title: '', name: prefs().nick, agree: false, busy: false, lastAt: 0 });
-  const ga = st => st.glAdmin || (st.glAdmin = { items: null, status: 'pending', state: 'idle', confirm: null, busy: Object.create(null), json: '' });
+  const ga = st => st.glAdmin || (st.glAdmin = { items: null, total: null, status: 'pending', state: 'idle', confirm: null, busy: Object.create(null), json: '' });
   const STATUS = [{ id: 'pending', name: '審査待ち' }, { id: 'hidden', name: '隠したもの' }, { id: 'approved', name: '載せたもの' }];
   function rerender(view, sheet) {
     const app = T.app; if (!app || !app.hasDOM) return;
@@ -76,7 +81,9 @@
   // 中継にギャラリーの入口があるか（null = まだ分からない / 'ok' / 'off'）。
   // 入口の無い古い中継（404）・合言葉が合わない（403）・ギャラリー未設定（503）は 'off'。通信できないだけなら決めない
   let avail = null;
-  const isOff = e => !!e && (e.status === 404 || e.status === 403 || (e.status === 503 && !!e.body && e.body.error === 'gallery not configured'));
+  // 403 banned（この端末が投稿禁止）は入口があるので 'off' にしない
+  const isBanned = e => !!e && e.status === 403 && !!e.body && e.body.error === 'banned';
+  const isOff = e => !!e && (e.status === 404 || (e.status === 403 && !isBanned(e)) || (e.status === 503 && !!e.body && e.body.error === 'gallery not configured'));
   /** ［みんなに見せる］を出してよいか（通信はしない） */
   const canPost = () => !!relay() && avail !== 'off';
   async function api(path, o) {
@@ -89,7 +96,9 @@
     const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const timer = setTimeout(() => { if (ctrl) ctrl.abort(); }, o.timeout || 15000);
     try {
-      const r = await doFetch(relay() + path, { method: o.method || 'GET', headers, body: o.body ? JSON.stringify(o.body) : undefined, signal: ctrl ? ctrl.signal : undefined });
+      const init = { method: o.method || 'GET', headers, body: o.body ? JSON.stringify(o.body) : undefined, signal: ctrl ? ctrl.signal : undefined };
+      if (o.fresh) init.cache = 'no-cache';
+      const r = await doFetch(relay() + path, init);
       if (!r || !r.ok) { const e = new Error('http'); e.status = r ? r.status : 0; try { e.body = r ? await r.json() : null; } catch (x) { e.body = null; } throw e; }
       return await r.json();
     } finally { clearTimeout(timer); }
@@ -132,6 +141,9 @@
       reports: num(x.reports) ? Math.max(0, Math.round(x.reports)) : null,
       device: typeof x.device === 'string' && /^[0-9a-f]{4,16}$/.test(x.device) ? x.device : null,
       reasons: Array.isArray(x.reasons) ? x.reasons.filter(r => REASONS.some(y => y.id === r)) : [],
+      userReports: num(x.userReports) ? Math.max(0, Math.round(x.userReports)) : 0,
+      ai: own(AI_NAME, x.ai) ? x.ai : null,
+      aiWhy: cleanText(x.aiWhy, 40),
     };
   }
   // 「この人」: 中継が author（端末の値のハッシュ）を返せばそれで、無ければニックネームで見分ける
@@ -173,7 +185,9 @@
     if (!more) g.postsState = 'loading';
     if (!quiet) rerender('gallery');
     try {
-      const j = await api('/v1/gallery' + (more && g.next ? '?cursor=' + encodeURIComponent(g.next) : ''));
+      const fresh = !more && !!g.fresh;
+      const j = await api('/v1/gallery' + (more && g.next ? '?cursor=' + encodeURIComponent(g.next) : ''), { fresh });
+      if (fresh) g.fresh = false;
       const got = (j && Array.isArray(j.items) ? j.items : []).slice(0, 100).map(x => cleanPost(x)).filter(Boolean);
       const before = more ? g.posts || [] : [];
       g.posts = before.concat(got.filter(x => !before.some(y => y.id === x.id)));
@@ -233,11 +247,11 @@
     if (g.postsState === 'idle' || g.postsState === 'loading') return '<p class="gl-wait">読み込んでいます…</p>';
     if (g.postsState === 'error') return `<div class="card flat gl-off"><p><b>今は見られません</b></p><p class="small muted">通信できる所で、もう一度試してください。</p><button class="btn ghost" data-act="gl-reload">もう一度</button></div>`;
     const list = visible(g.posts);
-    return `<p class="gl-lead">みんなの投稿です。運営が見てから載せています。気になる作品は［通報］してください。</p>
+    return `<p class="gl-lead">みんなの投稿です。AI と運営が確かめてから載せています。気になる作品は［通報］してください。</p>
       ${list.length ? `<div class="gl-grid">${list.map(it => postCard(st, it)).join('')}</div>` : '<div class="empty card flat"><p>まだ投稿はありません。</p></div>'}
       ${g.next ? `<button class="btn ghost block" data-act="gl-more" ${g.postsBusy ? 'disabled' : ''}>${g.postsBusy ? '読み込んでいます…' : 'もっと見る'}</button>` : ''}
       ${p.blocked.length || p.hidden.length ? `<p class="small muted gl-blocked">この端末で出さない人：${p.blocked.length}人・作品：${p.hidden.length}件<button class="link" data-act="gl-unblock">元に戻す</button></p>` : ''}
-      <div class="card flat gl-how"><h3>自分のデザインを投稿する</h3><p class="small muted">作り方の画面の［みんなに見せる］から送れます。運営が見てから載せます。</p>${p.posted.length ? `<p class="small muted">送った投稿：${p.posted.length}件（載るまで少し待ってください）</p>` : ''}<p class="small muted">困ったとき・消してほしいとき：${esc(CONTACT)}</p></div>`;
+      <div class="card flat gl-how"><h3>自分のデザインを投稿する</h3><p class="small muted">作り方の画面の［みんなに見せる］から送れます。18歳以上の方だけ投稿できます。AI と運営が確かめてから載せます（多くはすぐ載ります）。</p>${p.posted.length ? `<p class="small muted">送った投稿：${p.posted.length}件（確認中のものは、載るまで少し待ってください）</p>` : ''}<p class="small muted">困ったとき・消してほしいとき：${esc(CONTACT)}</p></div>`;
   }
   T.views.gallery = st => {
     const g = gs(st), U = T.ui;
@@ -259,15 +273,18 @@
           <p class="small"><b>${esc(d.concept.name)}</b>（${esc(d.palette.name)}）を投稿します。</p>
           <label class="gl-field"><span>題名（20字まで）</span><input id="gl-title" class="kt-input" type="text" maxlength="20" value="${esc(p.title)}" placeholder="例：秋のべっ甲" autocomplete="off"></label>
           <label class="gl-field"><span>ニックネーム（12字まで）</span><input id="gl-name" class="kt-input" type="text" maxlength="12" value="${esc(p.name)}" placeholder="例：つめこ" autocomplete="off"></label>
+          <p class="ai-age gl-age"><b>18歳以上の方だけ</b>投稿できます。</p>
+          <p class="small gl-rules-h"><b>投稿のきまり（要点）</b></p>
           <ul class="notes gl-rules">
             <li>名前（本名）や、顔・手の写真は入れないでください。写真は送れません。</li>
-            <li>運営が見てから載せます。すぐには出ません。</li>
-            <li>投稿すると、デザインと題名とニックネームが tsumé のサーバーに保存されます。回数を数えるため、この端末用の番号を変換した値も送ります。肌の色は送りません。</li>
-            <li>キャラクターやロゴ、人の作品をまねた柄は投稿しないでください。</li>
-            <li>18歳未満の方は、おうちの人と一緒に確かめてから投稿してください。</li>
-            <li>消してほしいときは ${esc(CONTACT)} へ。</li>
+            <li>個人がわかること、キャラクター・ロゴ・人の作品のまね、いやな言葉・差別・性的な内容、宣伝、ネイルと関係ない内容、なりすましは投稿できません。</li>
+            <li>きまりに反する投稿は、予告なく隠す・消す・投稿禁止にします。</li>
+            <li>題名・ニックネーム・デザインの文字（色の名前など）は、Google の AI（Gemini）に送って確かめます。AI と運営が確かめてから載せます（多くはすぐ載ります）。</li>
+            <li>投稿すると、デザインと題名とニックネームが tsumé のサーバーに保存されます。回数を数えるため、この端末用の番号を変換した値も送ります。一覧には、同じ人の作品を見分ける短い符号も出ます。肌の色は送りません。</li>
+            <li>載った投稿は1年で消えます。早く消してほしいときは ${esc(CONTACT)} へ。</li>
           </ul>
-          <label class="gl-agree"><input type="checkbox" data-act="gl-agree" ${p.agree ? 'checked' : ''}><span>上のことを守って投稿します</span></label>
+          <p class="gl-terms-p"><a class="link gl-terms" href="${TERMS}" target="_blank" rel="noopener">投稿のきまり（全文）を読む</a></p>
+          <label class="gl-agree"><input type="checkbox" data-act="gl-agree" ${p.agree ? 'checked' : ''}><span>18歳以上です。投稿のきまりに同意します。確かめるため、題名・ニックネーム・デザインの文字を Google の AI（Gemini）に送ることにも同意します。</span></label>
         </div>
         <footer class="sheet-foot"><button class="btn rose block" id="gl-send" data-act="gl-post-send" ${p.agree && !p.busy ? '' : 'disabled'}>${p.busy ? '送っています…' : '投稿する'}</button></footer>
       </section>`;
@@ -279,8 +296,9 @@
       <section class="sheet gl-sheet${op}" role="dialog" aria-modal="true" aria-label="通報する">
         <header class="sheet-head"><b>通報する</b><button class="iconbtn" data-act="sheet-close" aria-label="閉じる">${ICON.close}</button></header>
         <div class="sheet-body">
-          <p class="small muted">理由を選んでください。運営が確かめます。通報した作品は、この端末では出しません。</p>
+          <p class="small muted">理由を選んでください。AI と運営が確かめます。通報した作品は、この端末では出しません。</p>
           <div class="gl-reasons" role="group" aria-label="通報の理由">${REASONS.map(x => `<button class="gl-reason" data-act="gl-reason" data-v="${x.id}" aria-pressed="${r.reason === x.id}">${esc(x.name)}</button>`).join('')}</div>
+          <label class="gl-agree gl-report-user"><input type="checkbox" data-act="gl-report-user" ${r.user ? 'checked' : ''}><span>投稿者も通報する（同じ人の不適切な投稿が続くとき）</span></label>
         </div>
         <footer class="sheet-foot"><button class="btn rose block" data-act="gl-report-send" ${r.reason && !r.busy ? '' : 'disabled'}>${r.busy ? '送っています…' : '通報する'}</button></footer>
       </section>`;
@@ -309,14 +327,24 @@
       if (id) { pr.posted.push({ id, title, at: Date.now() }); pr.posted = pr.posted.slice(-30); }
       pr.nick = name === 'ななし' ? '' : name; savePrefs();
       Object.assign(p, { busy: false, lastAt: Date.now(), title: '', agree: false });
-      return { ok: true, id, msg: '受け付けました。運営が見てから載せます' };
+      // status が無い（古い中継）は審査待ちとして扱う
+      const status = j && j.status === 'approved' ? 'approved' : 'pending';
+      // 「載りました」のあと一覧を開いたら見えるように、覚えている一覧を捨てて読み直させる（中継の一覧は60秒キャッシュされる）
+      if (status === 'approved') { const g = gs(st); if (!g.postsBusy) Object.assign(g, { posts: null, next: null, postsState: 'idle', fresh: true }); }
+      return { ok: true, id, status, msg: status === 'approved' ? '載りました' : '確認してから載せます（ふつうは1日以内）' };
     } catch (e) {
       p.busy = false;
-      const why = e.body && e.body.error;
+      const b = e.body || {};
+      if (isBanned(e)) { avail = 'ok'; return fail('この端末からは投稿できません'); }
       if (isOff(e)) { avail = 'off'; return fail('今は投稿を受け付けていません（準備中です）'); }
       if (e.status) avail = avail || 'ok'; // 断られた（400・429 など）= 入口はある
-      if (e.status === 400 && why === 'bad text') return fail(e.body.field === 'design' ? 'デザインの中に使えない言葉があります' : '題名かニックネームに、使えない言葉があります');
-      if (e.status === 429) return fail('送る回数が多すぎます。時間をおいてください（1日5件まで）');
+      if (e.status === 400 && b.error === 'bad text') {
+        if (b.why === 'ai') return fail('この内容は載せられません（題名・ニックネーム・色の名前を見直してください）');
+        if (b.field === 'design') return fail('デザインの中に使えない言葉があります');
+        if (['url', 'email', 'phone'].includes(b.why)) return fail('URL・メールアドレス・電話番号は入れられません');
+        return fail('題名かニックネームに、使えない言葉があります');
+      }
+      if (e.status === 429) return fail(b.error === 'too many posts' ? '今日はもう送れません（1日5件まで）' : '少し待ってから送ってください');
       if (e.status === 413) return fail('パーツが多すぎて送れません。少し減らしてください');
       if (e.status === 503) return fail('今は投稿を受け付けていません。時間をおいてください');
       return fail('送れませんでした。通信を確かめて、もう一度');
@@ -325,11 +353,19 @@
   async function report(st) {
     const r = st.glReport || {}, reason = REASONS.some(x => x.id === r.reason) ? r.reason : null;
     if (!r.id || !reason) return fail('理由を選んでください');
-    const pr = prefs();
-    if (!pr.hidden.includes(r.id)) { pr.hidden.push(r.id); pr.hidden = pr.hidden.slice(-500); savePrefs(); }
+    const pr = prefs(), target = r.user ? 'user' : 'post';
+    if (!pr.hidden.includes(r.id)) { pr.hidden.push(r.id); pr.hidden = pr.hidden.slice(-500); }
+    // 投稿者も通報するときは、その人の作品もこの端末では出さない（ななしは人を見分けられないので、この作品だけ）
+    const it = target === 'user' ? findIn(st, 'posts', r.id) : null;
+    if (it && (it.author || it.name !== 'ななし') && !pr.blocked.includes(authorKey(it))) { pr.blocked.push(authorKey(it)); pr.blocked = pr.blocked.slice(-200); }
+    savePrefs();
     r.busy = true; rerender(null, 'gl-report');
-    try { const device = await deviceId(); await api('/v1/gallery/report', { method: 'POST', body: { id: r.id, reason, device } }); r.busy = false; return { ok: true, msg: '通報しました。運営が確かめます' }; }
-    catch (e) { r.busy = false; return fail('通報は送れませんでした。この端末では出さないようにしました'); }
+    try {
+      const device = await deviceId();
+      const j = await api('/v1/gallery/report', { method: 'POST', body: { id: r.id, reason, device, target } });
+      r.busy = false;
+      return { ok: true, msg: j && j.hidden ? '通報しました。この作品は一覧から外しました' : '通報しました。AI と運営が確かめます' };
+    } catch (e) { r.busy = false; return fail('通報は送れませんでした。この端末では出さないようにしました'); }
   }
   async function adminLoad(st) {
     const a = ga(st), key = adminKey();
@@ -340,15 +376,23 @@
       const j = await api('/v1/gallery/pending?status=' + (STATUS.some(x => x.id === a.status) ? a.status : 'pending'), { admin: key });
       const arr = Array.isArray(j) ? j : j && Array.isArray(j.items) ? j.items : [];
       a.items = arr.slice(0, 200).map(x => cleanPost(x, true)).filter(Boolean); a.state = 'ok';
-      return { ok: true, msg: `${(STATUS.find(x => x.id === a.status) || STATUS[0]).name} ${a.items.length}件` };
+      // 中継は1回に50件まで返す。total（その状態の全件数）があれば、残りがあることを出す
+      a.total = j && num(j.total) && j.total > a.items.length ? Math.round(j.total) : null;
+      return { ok: true, msg: `${(STATUS.find(x => x.id === a.status) || STATUS[0]).name} ${a.items.length}件${a.total ? `（全部で${a.total}件）` : ''}` };
     } catch (e) { a.state = 'error'; return fail(e.status === 401 || e.status === 403 ? '管理キーが違います' : '読み込めませんでした'); }
   }
   async function moderate(st, id, action) {
     const a = ga(st), key = adminKey();
-    if (!MOD[action] || !IDRE.test(String(id || ''))) return fail('できませんでした');
+    if (!own(MOD, action) || !IDRE.test(String(id || ''))) return fail('できませんでした');
     if (!key) return fail('管理キーを入れてください');
     a.busy[id] = true;
-    try { await api('/v1/gallery/moderate', { method: 'POST', body: { id, action }, admin: key }); a.items = (a.items || []).filter(x => x.id !== id); delete a.busy[id]; return { ok: true, msg: MOD[action] }; }
+    try {
+      await api('/v1/gallery/moderate', { method: 'POST', body: { id, action }, admin: key });
+      // ban は同じ端末の投稿も全部隠れるので、一覧から一緒に外す
+      const it = (a.items || []).find(x => x.id === id), dev = action === 'ban' && it && it.device;
+      a.items = (a.items || []).filter(x => x.id !== id && !(dev && x.device === dev));
+      delete a.busy[id]; return { ok: true, msg: MOD[action] };
+    }
     catch (e) { delete a.busy[id]; return fail(e.status === 401 || e.status === 403 ? '管理キーが違います' : 'できませんでした'); }
   }
   /** 運営用: 共有リンクから gallery.json の1件を作る */
@@ -365,8 +409,8 @@
     const items = a.items || [];
     const row = it => `<article class="gl-adm-item">
         <span class="gl-art">${it.design ? art('a', it, st) : '<span class="small muted">デザインを読めません</span>'}</span>
-        <div class="gl-adm-meta"><b>${esc(it.title)}</b><span class="small muted">${esc(it.name)}${it.created ? '・' + dateOf(it.created) : ''}${it.reports ? `・通報 ${it.reports}件` : ''}</span>${it.reasons && it.reasons.length ? `<span class="small muted">理由: ${esc(it.reasons.map(r => (REASONS.find(y => y.id === r) || {}).name).join('／'))}</span>` : ''}<span class="small muted">番号 ${esc(it.id)}${it.device ? `・端末 ${esc(it.device)}` : ''}</span></div>
-        <div class="gl-adm-acts">${['approve', 'hide', 'delete'].map(x => `<button class="btn ${x === 'approve' ? 'rose' : 'ghost'} sm" data-act="gl-mod" data-id="${esc(it.id)}" data-a="${x}" ${a.busy[it.id] ? 'disabled' : ''}>${x === 'approve' ? '載せる' : x === 'hide' ? '隠す' : a.confirm === it.id ? 'もう一度で消す' : '消す'}</button>`).join('')}</div>
+        <div class="gl-adm-meta"><b>${esc(it.title)}</b><span class="small muted">${esc(it.name)}${it.created ? '・' + dateOf(it.created) : ''}${it.reports ? `・通報 ${it.reports}件` : ''}${it.userReports ? `・投稿者への通報 ${it.userReports}件` : ''}</span>${it.reasons && it.reasons.length ? `<span class="small muted">理由: ${esc(it.reasons.map(r => (REASONS.find(y => y.id === r) || {}).name).join('／'))}</span>` : ''}<span class="small muted gl-adm-ai">AI: ${it.ai ? AI_NAME[it.ai] : '未判定'}${it.aiWhy ? `（${esc(it.aiWhy)}）` : ''}</span><span class="small muted">番号 ${esc(it.id)}${it.device ? `・端末 ${esc(it.device)}` : ''}</span></div>
+        <div class="gl-adm-acts">${['approve', 'hide', 'delete', 'ban'].map(x => `<button class="btn ${x === 'approve' ? 'rose' : 'ghost'} sm" data-act="gl-mod" data-id="${esc(it.id)}" data-a="${x}" ${a.busy[it.id] ? 'disabled' : ''}>${own(CONFIRM, x) && a.confirm === x + ':' + it.id ? CONFIRM[x][0] : MOD_BTN[x]}</button>`).join('')}</div>
       </article>`;
     return `${U.bar({ back: true, title: 'ギャラリーの管理' })}
       <section class="gl gl-admin">
@@ -376,6 +420,7 @@
         ${U.seg(STATUS, 'gl-admin-status', a.status, 'aria-label="どの作品を見るか"')}
         <button class="btn rose block" data-act="gl-admin-load" ${key && relay() ? '' : 'disabled'}>${esc((STATUS.find(x => x.id === a.status) || STATUS[0]).name)}を読み込む</button>
         ${a.state === 'loading' ? '<p class="gl-wait">読み込んでいます…</p>' : a.state === 'error' ? '<p class="cap-note">読み込めませんでした。</p>' : a.items ? (items.length ? items.map(row).join('') : '<p class="small muted">ありません。</p>') : ''}
+        ${a.state === 'ok' && a.total ? `<p class="small muted">全部で${a.total}件あります。片づけてから、もう一度読み込んでください。</p>` : ''}
         <div class="card flat"><h3>「みんなのデザイン」に足す</h3><p class="small muted">作品の共有リンクから、gallery.json の1件を作ります。できた文を gallery.json の items に足して公開します。</p>
           <input id="gl-adm-link" class="kt-input" type="url" placeholder="共有リンク" aria-label="共有リンク" autocomplete="off">
           <input id="gl-adm-title" class="kt-input" type="text" maxlength="20" placeholder="題名（20字まで）" aria-label="題名" autocomplete="off">
@@ -415,8 +460,9 @@
       T.app.toast('この人の作品は、この端末では出しません'); T.app.render();
     },
     'gl-unblock': (el, st) => { const p = prefs(); p.blocked = []; p.hidden = []; savePrefs(); T.app.toast('出さないようにした人と作品を、元に戻しました'); T.app.render(); },
-    'gl-report-open': (el, st) => { st.glReport = { id: el.dataset.id, reason: null, busy: false }; st.sheet = 'gl-report'; T.app.render(); },
+    'gl-report-open': (el, st) => { st.glReport = { id: el.dataset.id, reason: null, user: false, busy: false }; st.sheet = 'gl-report'; T.app.render(); },
     'gl-reason': (el, st) => { if (!st.glReport) return; st.glReport.reason = el.dataset.v; T.app.render(); },
+    'gl-report-user': (el, st) => { if (st.glReport) st.glReport.user = !!(el && el.checked); },
     'gl-report-send': async (el, st) => { const r = await report(st); if (st.glReport) st.sheet = null; say(r); T.app.render(); },
     'gl-post-open': (el, st) => {
       if (!st.current) { T.app.toast('デザインを選んでください'); return; }
@@ -440,10 +486,10 @@
     },
     'gl-admin-clear': (el, st) => { try { localStorage.removeItem(K.admin); } catch (e) { /* 保存できない環境 */ } ga(st).items = null; T.app.toast('管理キーを消しました'); T.app.render(); },
     'gl-admin-load': async (el, st) => { const r = await adminLoad(st); say(r); T.app.render(); },
-    'gl-admin-status': (el, st) => { const a = ga(st); a.status = STATUS.some(x => x.id === el.dataset.v) ? el.dataset.v : 'pending'; a.items = null; a.state = 'idle'; T.app.render(); },
+    'gl-admin-status': (el, st) => { const a = ga(st); a.status = STATUS.some(x => x.id === el.dataset.v) ? el.dataset.v : 'pending'; a.items = null; a.total = null; a.state = 'idle'; T.app.render(); },
     'gl-mod': async (el, st) => {
       const a = ga(st), id = el.dataset.id, action = el.dataset.a;
-      if (action === 'delete' && a.confirm !== id) { a.confirm = id; T.app.toast('消すときは、もう一度押してください'); T.app.render(); return; }
+      if (own(CONFIRM, action) && a.confirm !== action + ':' + id) { a.confirm = action + ':' + id; T.app.toast(CONFIRM[action][1]); T.app.render(); return; }
       a.confirm = null; T.app.render();
       const r = await moderate(st, id, action); say(r); T.app.render();
     },
@@ -459,5 +505,5 @@
     });
     document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'gl-link' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); openLink(T.app.state, e.target.value); } });
   }
-  Object.assign(G, { loadPicks, loadPosts, probe, canPost, post, report, adminLoad, moderate, pickJson, cleanPick, cleanPost, cleanText, prefs, deviceId, sha256hex, BUILTIN, REASONS, PERSONAL, K, avail: () => avail, _reset: () => { prefCache = null; artCache.clear(); avail = null; } });
+  Object.assign(G, { loadPicks, loadPosts, probe, canPost, post, report, adminLoad, moderate, pickJson, cleanPick, cleanPost, cleanText, prefs, deviceId, sha256hex, BUILTIN, REASONS, PERSONAL, CONTACT, TERMS, K, avail: () => avail, _reset: () => { prefCache = null; artCache.clear(); avail = null; } });
 })(typeof window !== 'undefined' ? window : globalThis);

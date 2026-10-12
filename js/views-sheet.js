@@ -10,7 +10,9 @@
   const group = (id, title, inner) => `<section class="sheet-group" id="sheet-${id}"><h3>${esc(title)}</h3>${inner}</section>`;
   const row = items => `<div class="subopts">${items.join('')}</div>`;
 
-  // 図鑑のパーツ: 大きさ・値段・つけ方と［指にのせてみる］
+  const PART_NS = [1, 2, 3, 5];
+  const basketN = st => (st.partBasket || []).reduce((n, b) => n + b.n, 0);
+  // 図鑑のパーツ: 大きさ・値段・つけ方と、いくつ・ほかのパーツも選んで［指にのせる］
   function partSheet(st, op) {
     const D = T.TOPPINGS, it = st.partItem, kd = it && D.KINDS[it.k]; if (!kd) return '';
     const m = T.MATERIALS[kd.mat], name = T.toppings.fullName(it);
@@ -30,7 +32,10 @@
           <div class="price-cards">${prices}</div>
           <div class="part-tips"><h3>キレイにつけるコツ（${polish ? 'マニキュア' : 'ジェル'}）</h3><ol>${tips.map(t => `<li>${esc(t)}</li>`).join('')}</ol></div>
         </div>
-        <footer class="sheet-foot"><button class="btn rose block" data-act="part-try">${ICON.wand}指にのせてみる</button></footer>
+        <footer class="sheet-foot part-foot">
+          <div class="part-count"><span class="lab">いくつのせる</span>${U.seg(PART_NS.map(n => ({ id: String(n), name: n + '個' })), 'part-n', String(st.partN || 1), 'aria-label="のせる数"')}</div>
+          <div class="btnrow"><button class="btn ghost" data-act="part-more">${ICON.plus}ほかのパーツも選ぶ</button><button class="btn rose" data-act="part-try">${ICON.wand}${basketN(st) ? `まとめてのせる（${basketN(st) + (st.partN || 1)}個）` : `指にのせる（${st.partN || 1}個）`}</button></div>
+        </footer>
       </section>`;
   }
 

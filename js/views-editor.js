@@ -6,6 +6,7 @@
   const clone = o => JSON.parse(JSON.stringify(o));
   const SIZES = ['S', 'M', 'L'];
   const METAL_KINDS = ['charm', 'stud', 'bullion', 'chain'];
+  const MAX_PARTS = 24; // 共有リンク（js/share.js の MAX_PER_NAIL）と同じ上限
 
   const keyOf = st => U.customKey(st.current.conceptId, st.current.paletteIndex);
   const sidesOf = d => (d.foot ? ['foot'] : ['left', 'right']);
@@ -58,9 +59,15 @@
 
   const trayTabOf = it => (D.TRAY.find(t => t.items.some(x => x.k === it.k)) || D.TRAY[0]).id;
   /** パーツを今の指の空いている所に置き、選んだ状態にする（トレイと図鑑の両方から呼ぶ） */
+  function isFull(list) {
+    if (list.length < MAX_PARTS) return false;
+    if (T.app.toast) T.app.toast(`1つの爪にのせられるのは${MAX_PARTS}個までです`);
+    return true;
+  }
   function addPart(st, item) {
     const e = st.editor;
     e.pick = Object.assign({}, item); e.tab = trayTabOf(item);
+    if (isFull(listOf(st))) return -1;
     if (METAL_KINDS.includes(item.k) && D.METALS[item.v]) e.metal = item.v;
     const d = designNow(st), { L } = T.nailPath(d.foot ? 'square' : st.sel.shape, d.foot ? 'short' : st.sel.length);
     const list = clone(listOf(st)), add = Object.assign(pickItem(st), { s: sizeFor(st, item.k) }), spot = freeSpot(list, add, L);
@@ -78,9 +85,24 @@
   function placePart(st, item, pos) {
     const e = st.editor, list = clone(listOf(st)), at = inNail(pos);
     e.pick = Object.assign({}, item); e.tab = trayTabOf(item);
+    if (isFull(list)) return -1;
     list.push(Object.assign({}, item, { x: at.x, y: at.y, s: sizeFor(st, item.k) }, item.k === 'chain' ? { r: -28 } : {}));
     setList(st, list); e.selected = list.length - 1; e.layout = null;
     return e.selected;
+  }
+  /** いくつかのパーツをまとめて今の指にのせる。items: [{ item, n }]。のせた数を返す */
+  function addMany(st, items) {
+    let added = 0;
+    for (const { item, n } of items) for (let i = 0; i < n; i++) { if (addPart(st, item) < 0) return added; added++; }
+    return added;
+  }
+  /** トレイの「図鑑のパーツ」を落としたとき（id は 'book:種類:色:形'） */
+  function dropBook(st, id, pos) {
+    const m = /^book:([a-z0-9]+):([a-z0-9_]+):([a-z0-9_]*)$/.exec(id || ''); if (!m || !D.KINDS[m[1]] || !st.current) return '';
+    const it = { k: m[1], v: m[2] }; if (m[3]) it.shape = m[3];
+    const i = pos ? placePart(st, it, pos) : addPart(st, it); if (i < 0) return '';
+    st.fx = 'pop';
+    return `${T.FINGER_NAMES[st.editor.finger] || '親指'}に「${T.toppings.fullName(it)}」をのせました`;
   }
   /** ホログラムは5枚を少しずつずらして散らす */
   function scatter(st, item, pos) {
@@ -117,7 +139,7 @@
     const sel = e.selected != null && list[e.selected] ? list[e.selected] : null;
     const tool = sel ? `<div class="ed-tool" role="toolbar" aria-label="選んだパーツ"><button data-act="ed-smaller" aria-label="小さく">${ICON.minus}</button><button data-act="ed-bigger" aria-label="大きく">${ICON.plus}</button><button data-act="ed-rotate" aria-label="回す">${ICON.rotate}</button><button data-act="ed-front" aria-label="前へ（上に重ねる）">${ICON.up || '↑'}</button><button data-act="ed-back" aria-label="後ろへ（下に重ねる）">${ICON.down || '↓'}</button><button data-act="ed-remove" aria-label="外す">${ICON.trash}</button></div>` : `<div class="hint">${ICON.hand}<span>${list.length ? 'ドラッグで動かす・タップで選ぶ・2本指で大きさと向き' : '下のパーツを選ぶか、爪をタップして置く'}</span></div>`;
     const corner = `<div class="ed-corner"><button class="iconbtn" data-act="ed-undo" aria-label="元に戻す" ${e.undo && e.undo.key === keyOf(st) && e.undo.stack.length ? '' : 'disabled'}>${ICON.undo || ICON.refresh}</button><button class="iconbtn" data-act="ed-zoom" aria-pressed="${!!e.zoom}" aria-label="${e.zoom ? '元の大きさで見る' : '大きく見る'}">${ICON.zoom || ICON.plus}</button></div>`;
-    const ranges = sel ? `<div class="ed-ranges"><label><span>大きさ</span><input type="range" data-ed-range="z" min="50" max="220" step="5" value="${Math.round(scaleOf(sel) * 100)}"><b class="num">${Math.round(scaleOf(sel) * 100)}%</b></label><label><span>向き</span><input type="range" data-ed-range="r" min="-180" max="180" step="5" value="${((sel.r || 0) + 540) % 360 - 180}"><b class="num">${((sel.r || 0) + 540) % 360 - 180}°</b></label></div>` : '';
+    const ranges = sel ? `<div class="ed-ranges"><button class="btn ghost sm ed-dup" data-act="ed-dup">${ICON.plus}同じパーツをもう1つ</button><label><span>大きさ</span><input type="range" data-ed-range="z" min="50" max="220" step="5" value="${Math.round(scaleOf(sel) * 100)}"><b class="num">${Math.round(scaleOf(sel) * 100)}%</b></label><label><span>向き</span><input type="range" data-ed-range="r" min="-180" max="180" step="5" value="${((sel.r || 0) + 540) % 360 - 180}"><b class="num">${((sel.r || 0) + 540) % 360 - 180}°</b></label></div>` : '';
     const layouts = Object.keys(D.LAYOUTS).map(k => `<button class="chip" data-act="ed-layout" data-v="${k}" aria-pressed="${e.layout === k}">${esc(D.LAYOUTS[k].name)}</button>`).join('');
     const sizes = U.seg(SIZES.map(z => ({ id: z, name: z })), 'ed-size', e.size, 'aria-label="大きさ"');
     const names = T.toppings.summary([spec]), painted = !!spec.shop;
@@ -156,7 +178,7 @@
       addPart(st, it); st.fx = 'pop'; T.app.render();
     },
     'ed-place': (el, st, pos) => {
-      const list = clone(listOf(st)), it = pickItem(st);
+      const list = clone(listOf(st)), it = pickItem(st); if (isFull(list)) return;
       list.push(Object.assign(it, { x: pos.x, y: pos.y, s: sizeFor(st, it.k) }, it.k === 'chain' ? { r: -28 } : {}));
       setList(st, list); st.editor.selected = list.length - 1; st.editor.layout = null; T.app.render();
     },
@@ -177,10 +199,17 @@
       e.selected = null; e.layout = null; T.app.persist(); T.app.render();
     },
     'ed-zoom': (el, st) => { st.editor.zoom = !st.editor.zoom; T.app.render(); },
+    'ed-dup': (el, st) => {
+      const i = st.editor.selected, list = clone(listOf(st)), t = list[i]; if (!t || isFull(list)) return;
+      const d = designNow(st), { L } = T.nailPath(d.foot ? 'square' : st.sel.shape, d.foot ? 'short' : st.sel.length);
+      const copy = clone(t), spot = freeSpot(list, copy, L); Object.assign(copy, { x: spot.x, y: spot.y });
+      list.push(copy); setList(st, list); st.editor.selected = list.length - 1; st.fx = 'pop'; T.app.render();
+    },
+    // 並べ方: 選んでいるパーツだけを並べ直す（ほかの種類のパーツは残す）
     'ed-layout': (el, st) => {
-      const it = pickItem(st), k = el.dataset.v;
-      const list = D.LAYOUTS[k].items.map(at => Object.assign({}, it, { x: at.x, y: at.y, s: D.KINDS[it.k].big && at.s === 'S' ? 'M' : at.s }, it.k === 'chain' ? { r: -28 } : {}));
-      setList(st, list); st.editor.layout = k; st.editor.selected = null; st.fx = 'pop'; T.app.render();
+      const it = pickItem(st), k = el.dataset.v, same = t => t.k === it.k && t.v === it.v && (t.shape || '') === (it.shape || '');
+      const list = clone(listOf(st)).filter(t => !same(t)).concat(D.LAYOUTS[k].items.map(at => Object.assign({}, it, { x: at.x, y: at.y, s: D.KINDS[it.k].big && at.s === 'S' ? 'M' : at.s }, it.k === 'chain' ? { r: -28 } : {})));
+      setList(st, list.slice(-MAX_PARTS)); st.editor.layout = k; st.editor.selected = null; st.fx = 'pop'; T.app.render();
     },
     'ed-size': (el, st) => {
       st.editor.size = el.dataset.v;
@@ -235,5 +264,5 @@
       T.actions['ed-transform'](null, st, t.dataset.edRange === 'z' ? { i, z: +t.value / 100 } : { i, r: +t.value });
     });
   }
-  T.editor = { ensureCustom, enter, addPart, placePart, scatter, inNail, listOf, scaleOf, pushUndo };
+  T.editor = { ensureCustom, enter, addPart, addMany, dropBook, placePart, scatter, inNail, listOf, scaleOf, pushUndo, MAX_PARTS };
 })(typeof window !== 'undefined' ? window : globalThis);
