@@ -53,6 +53,7 @@
     const items = S.ITEMS.filter(x => x.cat === tab.id);
     return `${U.bar({ back: true, title: 'SHOP' })}
       <p class="small muted shop-lead">アイテムを選ぶと、そのまま爪にのせてデザインできます。</p>
+      ${tab.id === 'sticker' ? `<button class="mix-link link" data-act="nav" data-view="stickers">${U.ICON.wand}気に入るシールが無ければ、シール工房で自分で作る${U.ICON.chev}</button>` : ''}
       <div class="shop-tabs" data-keep-scroll="shop-tabs">${S.CATS.map(c => `<button class="pill" data-act="shop-tab" data-v="${c.id}" aria-pressed="${c.id === tab.id}">${esc(c.name)}</button>`).join('')}</div>
       <div class="shop-grid">${items.map(card).join('')}</div>
       <p class="disclaimer">${NOTE}</p>`;

@@ -34,6 +34,7 @@
     const saved = T.app.isSaved(d.concept.id, d.paletteIndex);
     return `<div class="look">
       <p class="palette-line"><b>${esc(d.palette.name)}</b>　<span>${esc(E.situation(st.sel, st.season).name)}</span></p>
+      <button class="link mix-link" data-act="mix-open" data-hex="${d.palette.base}" data-name="${esc(d.palette.name)}の色">${ICON.drop}この色を、持っている色を混ぜて作る${ICON.chev}</button>
       <p class="story">${esc(d.concept.story)}</p>
       ${U.chart(d, side)}
       <button class="somm-btn" data-act="somm-open">${ICON.voice}<span><b>tsumé ソムリエに聞く</b><small>映える角度・光・背景を、約${T.sommelier.script(d, st.sel, st.season).sec}秒で</small></span>${ICON.chev}</button>

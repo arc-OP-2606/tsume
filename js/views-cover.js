@@ -16,7 +16,7 @@
       </div>
       <div class="cover-cta">
         <button class="btn rose big" data-act="enter">はじめる</button>
-        <button class="link cover-kotoba" data-act="nav" data-view="kotoba">${U.ICON.sparkle}ことばで咲かせる${U.ICON.chev}</button>
+        <div class="cover-links"><button class="link cover-kotoba" data-act="nav" data-view="kotoba">${U.ICON.sparkle}ことばで咲かせる${U.ICON.chev}</button><button class="link cover-kotoba" data-act="nav" data-view="mix">${U.ICON.drop}持っている色で、色を作る${U.ICON.chev}</button><button class="link cover-kotoba" data-act="nav" data-view="stickers">${U.ICON.wand}自分のシールを作る${U.ICON.chev}</button></div>
         <p class="cover-foot">${U.esc(s.name)}の色 ・ ${T.CONCEPTS.length}のデザイン ・ 100均から高級素材まで</p>
       </div>
     </section>`;

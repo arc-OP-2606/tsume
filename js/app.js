@@ -12,10 +12,11 @@
     sheet: null, saved: [], matTab: 'materials', matStore: 'all', season: E.seasonOf(), fx: null, sceneGroup: 'special',
     partItem: null, make: null, checks: {}, shopTab: 'color', shopItem: null, shopCycle: {},
     palettes: {}, kotoba: { text: '', result: null, busy: false }, voiceGuide: false,
+    myColors: { gel: [], polish: [] }, mix: { target: null, kind: 'gel' },
   };
 
   // ---- 保存（端末内だけ）
-  const K = { saved: 'tsume.saved.v1', skin: 'tsume.skin.v1', custom: 'tsume.custom.v1', palettes: 'tsume.palettes.v1', voice: 'tsume.voice.v1' };
+  const K = { saved: 'tsume.saved.v1', skin: 'tsume.skin.v1', custom: 'tsume.custom.v1', palettes: 'tsume.palettes.v1', voice: 'tsume.voice.v1', mycolors: 'tsume.mycolors.v1' };
   function read(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }
   function write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   function load() {
@@ -28,6 +29,14 @@
     Object.keys(pl || {}).forEach(k => { const p = cleanPalette(k, pl[k]); if (p) state.palettes[k] = p; });
     state.saved.forEach(x => { if (typeof x.paletteIndex === 'string') { const p = cleanPalette(x.paletteIndex, x.palette); if (p) state.palettes[x.paletteIndex] = p; else x.paletteIndex = 0; } });
     state.voiceGuide = read(K.voice, false) === true;
+    state.myColors = cleanMyColors(read(K.mycolors, null));
+  }
+  // 持っている色（ジェル・マニキュアは混ぜられないので分ける）
+  function cleanMyColors(v) {
+    const out = { gel: [], polish: [] };
+    if (!v || typeof v !== 'object') return out;
+    ['gel', 'polish'].forEach(k => { if (Array.isArray(v[k])) out[k] = v[k].filter(c => c && ID.test(c.id || '') && HEX.test(c.hex || '')).slice(0, 60).map(c => ({ id: c.id, hex: c.hex.toUpperCase(), name: String(c.name || c.hex).replace(/[<>&"'`]/g, '').slice(0, 20), shop: ID.test(c.shop || '') ? c.shop : undefined })); });
+    return out;
   }
   const ROLES = ['base', 'tip', 'accent', 'deep', 'light', 'metal'];
   function cleanPalette(k, p) {
@@ -75,7 +84,7 @@
     const open = [state.current && state.current.paletteIndex, state.kotoba && state.kotoba.result && state.kotoba.result.key]; // 開いているデザインと、最新のことばの配色は残す
     const keepIds = new Set(state.saved.map(x => x.paletteIndex).concat(open).filter(v => typeof v === 'string').concat(Object.keys(state.palettes).slice(-30)));
     Object.keys(state.palettes).forEach(k => { if (!keepIds.has(k)) delete state.palettes[k]; });
-    const a = write(K.saved, state.saved), b = write(K.skin, state.skin), c = write(K.custom, state.custom), d = write(K.palettes, state.palettes); write(K.voice, !!state.voiceGuide);
+    const a = write(K.saved, state.saved), b = write(K.skin, state.skin), c = write(K.custom, state.custom), d = write(K.palettes, state.palettes); write(K.voice, !!state.voiceGuide); write(K.mycolors, state.myColors);
     return a && b && c && d;
   }
 
@@ -184,8 +193,8 @@
     window.addEventListener('popstate', () => { back(); });
     load();
     const hash = (location.hash || '').replace('#', '');
-    if (['try', 'mine', 'materials', 'colors', 'about', 'shop', 'kotoba'].includes(hash)) state.view = hash;
+    if (['try', 'mine', 'materials', 'colors', 'about', 'shop', 'kotoba', 'mix', 'stickers'].includes(hash)) state.view = hash;
   }
-  T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, sanitizeCustom, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
+  T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, sanitizeCustom, cleanMyColors, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
   if (hasDOM) render();
 })(typeof window !== 'undefined' ? window : globalThis);

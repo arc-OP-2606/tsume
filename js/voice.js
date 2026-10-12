@@ -63,6 +63,16 @@
     onCmd = cb; onState = state || null; want = true;
     return start();
   }
+  /** 1回だけ聞き取る（色の名前など）。cb(文字 | null) */
+  function dictate(cb) {
+    if (!Rec) return false;
+    const r = new Rec(); r.lang = 'ja-JP'; r.continuous = false; r.interimResults = false;
+    let done = false; const end = t => { if (!done) { done = true; cb(t); } };
+    r.onresult = e => end(e.results[0] && e.results[0][0] ? e.results[0][0].transcript : null);
+    r.onerror = () => end(null); r.onend = () => end(null);
+    try { r.start(); } catch (e) { return false; }
+    return true;
+  }
   function unlisten() { want = false; onCmd = null; onState = null; if (rec) { try { rec.stop(); } catch (e) {} } }
-  T.voice = { available, speak, stop, speaking, listenAvailable: () => !!Rec, listen, unlisten, command };
+  T.voice = { available, speak, stop, speaking, listenAvailable: () => !!Rec, listen, unlisten, command, dictate };
 })(typeof window !== 'undefined' ? window : globalThis);
