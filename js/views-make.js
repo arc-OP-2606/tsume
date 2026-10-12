@@ -90,7 +90,8 @@
     if (s.kind === 'check') return finishCheck(st, s);
     const tools = s.tools.length ? `<div class="tools"><span class="lab">使うもの</span>${s.tools.map(id => `<span class="tool-chip">${esc(T.MATERIALS[id].name)}</span>`).join('')}</div>` : '';
     const timer = s.timer ? `<div class="timer-row">${timerView(timerKey(st, s), s.timer)}<span class="small muted">${st.sel.method === 'polish' ? '時間は目安。' : '時間はライトとジェルの説明書を優先。'}</span></div>` : '';
-    return `<ol class="how">${s.how.map(l => `<li>${esc(l)}</li>`).join('')}</ol>${tools}${tipHtml(s)}${timer}${fixHtml(s)}`;
+    const brushes = s.tid && T.brushes ? T.brushes.recommendHtml([s.tid]) : '';
+    return `<ol class="how">${s.how.map(l => `<li>${esc(l)}</li>`).join('')}</ol>${tools}${brushes}${tipHtml(s)}${timer}${fixHtml(s)}`;
   }
 
   // ---- 作るモード

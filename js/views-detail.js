@@ -35,20 +35,21 @@
     return `<div class="look">
       <p class="palette-line"><b>${esc(d.palette.name)}</b>　<span>${esc(E.situation(st.sel, st.season).name)}</span></p>
       <button class="link mix-link" data-act="mix-open" data-hex="${d.palette.base}" data-name="${esc(d.palette.name)}の色">${ICON.drop}この色を、持っている色を混ぜて作る${ICON.chev}</button>
+      <button class="link mix-link" data-act="dw-start">${ICON.wand}この色の爪に、自分で描く${ICON.chev}</button>
       <p class="story">${esc(d.concept.story)}</p>
       ${U.chart(d, side)}
       <button class="somm-btn" data-act="somm-open">${ICON.voice}<span><b>tsumé ソムリエに聞く</b><small>映える角度・光・背景を、約${T.sommelier.script(d, st.sel, st.season).sec}秒で</small></span>${ICON.chev}</button>
       <div class="recipe">${rows}</div>
       ${notes.length ? `<ul class="notes">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
       <div class="meta"><span>材料 <b class="num">${yen(d.cost.total)}</b></span><span>道具（初回） <b class="num">${yen(d.cost.tools)}</b></span><span>目安 <b class="num">${d.est.minutes}分</b></span><span>難易度 <b class="num">${d.est.difficulty}/5</b></span></div>
-      <div class="btnrow"><button class="btn ${saved ? 'rose' : ''}" data-act="save">${saved ? ICON.heartFill : ICON.heart}${saved ? '保存済み' : 'マイデザインに保存'}</button><button class="btn ghost" data-act="copy">${ICON.copy}レシピをコピー</button><button class="btn ghost" data-act="share">${ICON.share}共有</button></div>
+      <div class="btnrow"><button class="btn ${saved ? 'rose' : ''}" data-act="save">${saved ? ICON.heartFill : ICON.heart}${saved ? '保存済み' : 'マイデザインに保存'}</button><button class="btn ghost" data-act="copy">${ICON.copy}レシピをコピー</button><button class="btn ghost" data-act="${T.share ? 'sh-open' : 'share'}">${ICON.share}共有</button>${T.gallery && T.gallery.canPost && T.gallery.canPost() ? `<button class="btn ghost" data-act="gl-post-open">${ICON.sparkle}みんなに見せる</button>` : ''}</div>
     </div>`;
   }
 
   function materials(st, d) {
     const s = st.sel, cons = d.materials.filter(m => !m.once), kits = d.materials.filter(m => m.cat === 'kit'), tools = d.materials.filter(m => m.once && m.cat !== 'kit'), salon = d.salon;
     const tiers = U.seg(T.TIERS.map(t => ({ id: t, name: T.TIER_INFO[t].label })), 'tier-here', s.tier, 'aria-label="予算"');
-    const row = m => `<tr${m.once ? ' class="tool"' : ''}><td>${esc(m.name)}${m.qty > 1 ? ` <span class="muted">×${m.qty}</span>` : ''}<br><span class="prod">${esc(m.product)}（${esc(m.store)}）</span>${!m.once && m.upgrade && (s.tier === 'kodawari' || s.tier === 'luxe') && m.upgrade.tier !== m.tier ? `<br><span class="up">次の予算なら ${esc(m.upgrade.p)}（${esc(m.upgrade.s)}）${yen(m.upgrade.y)}</span>` : ''}</td><td class="price num">${yen(m.subtotal)}</td></tr>`;
+    const row = m => `<tr${m.once ? ' class="tool"' : ''}><td>${esc(m.name)}${m.qty > 1 ? ` <span class="muted">×${m.qty}</span>` : ''}<br><span class="prod">${esc(m.product)}（${esc(m.store)}）</span>${!m.once && m.upgrade && (s.tier === 'kodawari' || s.tier === 'luxe') && m.upgrade.tier !== m.tier ? `<br><span class="up">次の予算なら ${esc(m.upgrade.p)}（${esc(m.upgrade.s)}）${yen(m.upgrade.y)}</span>` : ''}${m.id === 'art_brush' && T.brushes ? T.brushes.recommendHtml(T.brushes.techsOf(d)) : ''}</td><td class="price num">${yen(m.subtotal)}</td></tr>`;
     return `<div class="mats">
       ${T.shop ? T.shop.used(d) : ''}
       ${tiers}

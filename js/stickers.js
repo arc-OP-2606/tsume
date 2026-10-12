@@ -140,6 +140,9 @@
   }
 
   // ---- 手描き（100×100 の箱の線を、mm に拡大）
+  // ---- AI の絵（背景が透明の PNG）。s mm の正方形に収める
+  const PNG = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
+  function imageSvg(item, cx, cy, s) { return PNG.test(item.src || '') ? `<image href="${item.src}" x="${f(cx - s / 2)}" y="${f(cy - s / 2)}" width="${f(s)}" height="${f(s)}" preserveAspectRatio="xMidYMid meet"/>` : ''; }
   function drawSvg(item, cx, cy, s) {
     const k = s / 100, strokes = (item.strokes || []).slice(0, 400);
     return `<g transform="translate(${f(cx - s / 2)},${f(cy - s / 2)}) scale(${f(k)})">${strokes.map(st => {
@@ -158,8 +161,19 @@
   /** 試し刷りの目盛りの長さ（mm）。紙が広ければ 10cm（測りやすい） */
   const rulerLen = P => (P.w >= 140 ? 100 : 50);
   /** シートに置く1つ1つ（模様の手のセットは5本に分ける） */
+  const PRINTABLE = ['sticker', 'flake'];
+  function nailSpec(item, finger) {
+    const U = T.ui, d = U && U.designFor(item.conceptId, item.paletteIndex); if (!d) return null;
+    const specs = d.foot || d[item.side] || d.left, s = specs && specs[finger]; if (!s) return null;
+    return { spec: Object.assign({}, s, { toppings: (s.toppings || []).filter(t => PRINTABLE.includes(t.k)) }), palette: d.palette };
+  }
   function pieces(item) {
     const n = Math.max(1, Math.min(20, item.count || 1)), out = [];
+    if (item.type === 'nail') {
+      const ws = item.set === 'mine' && Array.isArray(item.widths) && item.widths.length === 5 ? item.widths : HANDS[item.set] || HANDS.M, L = T.nailPath ? T.nailPath(item.shape || 'oval', item.length || 'medium').L : 130;
+      for (let k = 0; k < n; k++) (item.fingers || [0, 1, 2, 3, 4]).forEach(fi => out.push({ item, finger: fi, w: ws[fi], h: (ws[fi] * L) / 100, label: FINGERS[fi] }));
+      return out;
+    }
     if (item.type === 'pattern') {
       const ws = item.set === 'mine' && Array.isArray(item.widths) && item.widths.length === 5 ? item.widths : item.set && HANDS[item.set] ? HANDS[item.set] : [item.w || 12];
       for (let k = 0; k < n; k++) ws.forEach((w, i) => out.push({ item, w, h: w * (item.ratio || 1.3), label: item.set ? FINGERS[i] : '' }));
@@ -189,10 +203,25 @@
       const d = nailPath(pc.w, pc.h, it.shape);
       body = `<defs><clipPath id="${idp}-c"><path d="${d}"/></clipPath><filter id="${idp}-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.35"/></filter></defs>
         <g clip-path="url(#${idp}-c)">${patternSvg(it, pc.w, pc.h, idp)}</g>${guides ? `<path d="${d}" fill="none" stroke="#B9B2B4" stroke-width="0.12" stroke-dasharray="0.6 0.5"/>` : ''}`;
+    } else if (it.type === 'nail') {
+      const ns = nailSpec(it, pc.finger), k = pc.w / 100;
+      body = ns && T.renderNail ? `<g transform="scale(${f(k)})">${T.renderNail(ns.spec, ns.palette, { shape: it.shape || 'oval', length: it.length || 'medium', seed: 11, finger: pc.finger, print: true })}</g>` : '';
+      if (guides && T.nailPath) body += `<g transform="scale(${f(k)})"><path d="${T.nailPath(it.shape || 'oval', it.length || 'medium').d}" fill="none" stroke="#B9B2B4" stroke-width="${f(0.12 / k)}" stroke-dasharray="${f(0.6 / k)} ${f(0.5 / k)}"/></g>`;
     } else if (it.type === 'draw') body = drawSvg(it, pc.w / 2, pc.h / 2, pc.w);
+    else if (it.type === 'image') body = imageSvg(it, pc.w / 2, pc.h / 2, pc.w);
     else body = motifSvg(it, pc.w / 2, pc.h / 2, pc.item.w || 8);
     const label = pc.label ? `<text x="${f(pc.w / 2)}" y="${f(pc.h + 2.2)}" font-size="1.8" text-anchor="middle" fill="#9C9A9E" font-family="sans-serif">${esc(pc.label)}</text>` : '';
     return `<g transform="translate(${f(pc.x)},${f(pc.y)})">${body}${label}</g>`;
+  }
+  /** 爪の幅をはかる目盛り。紙を爪に当てて、ぴったりの番号（＝横幅 mm）を選ぶ */
+  function gaugeSvg(P) {
+    let x = 10, y = 22, out = `<text x="10" y="18" font-size="2.8" font-family="sans-serif" fill="#6A5A5E">爪の幅をはかる: 切り取って爪に当て、いちばん合う数字（横幅 mm）をアプリの「自分の爪」に入れる</text>`;
+    for (let w = 8; w <= 18; w += 1) {
+      const h = w * 1.25; if (x + w > P.w - 10) { x = 10; y += 26; }
+      out += `<g transform="translate(${f(x)},${f(y)})"><path d="${nailPath(w, h, 'oval')}" fill="none" stroke="#6A5A5E" stroke-width="0.2"/><text x="${f(w / 2)}" y="${f(h + 3.2)}" font-size="2.6" text-anchor="middle" font-family="sans-serif" fill="#6A5A5E">${w}</text></g>`;
+      x += w + 4;
+    }
+    return out;
   }
   /** シート全体の SVG（mm）。下に 5cm の目盛り（実寸の確かめ） */
   function sheetSvg(sheet, o) {
@@ -201,7 +230,7 @@
     const RL = rulerLen(P), ticks = Array.from({ length: RL / 10 + 1 }, (_, i) => `M${i * 10},${i % 5 ? -1.2 : -2} V${i % 5 ? 1.2 : 2}`).join(' ');
     const ruler = `<g transform="translate(10,${f(P.h - 18)})" font-family="sans-serif" fill="#6A5A5E"><path d="M0,0 H${RL} ${ticks}" stroke="#6A5A5E" stroke-width="0.25" fill="none"/><rect x="${RL + 6}" y="-5" width="10" height="10" fill="none" stroke="#6A5A5E" stroke-width="0.25"/><text x="0" y="10" font-size="2.6">この線が ${RL / 10}cm、四角が 1cm なら実寸どおり（印刷は「実際のサイズ・100%」で）</text></g>`;
     const head = `<text x="10" y="10" font-size="3" font-family="sans-serif" fill="#9C9A9E">tsumé シール工房 ・ ${esc(P.name)}${sheet.mirror ? ' ・ 左右反転' : ''}</text>`;
-    const pcs = L.placed.map((pc, i) => pieceSvg(pc, i, sheet.guides !== false)).join('');
+    const pcs = L.placed.map((pc, i) => pieceSvg(pc, i, sheet.guides !== false)).join('') + (sheet.gauge ? gaugeSvg(P) : '');
     const content = sheet.mirror ? `<g transform="translate(${P.w},0) scale(-1,1)">${pcs}</g>` : pcs;
     const size = o.px ? `width="${o.px}" height="${Math.round((o.px * P.h) / P.w)}"` : `width="${P.w}mm" height="${P.h}mm"`;
     // 倍率の補正（テスト印刷の 5cm が 49mm なら 50/49 倍にして刷る）
@@ -212,8 +241,13 @@
   function previewSvg(item, px) {
     const W = 20, H = 26, nail = nailPath(W, H, item.shape || 'oval');
     let body;
+    if (item.type === 'nail') {
+      const ns = nailSpec(item, (item.fingers || [0])[0]); if (!ns || !T.renderNail) return '';
+      const L = T.nailPath(item.shape || 'oval', item.length || 'medium').L;
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 112 ${L + 12}" width="${px}" height="${Math.round((px * (L + 12)) / 112)}" class="st-preview">${T.renderNail(ns.spec, ns.palette, { shape: item.shape || 'oval', length: item.length || 'medium', seed: 11, finger: (item.fingers || [0])[0] })}</svg>`;
+    }
     if (item.type === 'pattern') body = `<defs><clipPath id="pv-c"><path d="${nail}"/></clipPath><filter id="pv-soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="0.35"/></filter></defs><path d="${nail}" fill="#F3D9D2"/><g clip-path="url(#pv-c)">${patternSvg(item, W, H, 'pv')}</g>`;
-    else body = `<path d="${nail}" fill="#F3D9D2"/>${item.type === 'draw' ? drawSvg(item, W / 2, H / 2, 16) : motifSvg(item, W / 2, H * 0.55, Math.min(14, (item.w || 8) * 1.4))}`;
+    else body = `<path d="${nail}" fill="#F3D9D2"/>${item.type === 'draw' ? drawSvg(item, W / 2, H / 2, 16) : item.type === 'image' ? imageSvg(item, W / 2, H * 0.55, 14) : motifSvg(item, W / 2, H * 0.55, Math.min(14, (item.w || 8) * 1.4))}`;
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${W + 4} ${H + 4}" width="${px}" height="${Math.round((px * (H + 4)) / (W + 4))}" class="st-preview">${body}<path d="${nail}" fill="none" stroke="#C9A9A4" stroke-width="0.3"/></svg>`;
   }
 
@@ -289,7 +323,22 @@
   const ID = /^[\w-]{1,40}$/;
   function cleanItem(it) {
     if (!it || typeof it !== 'object' || !ID.test(it.id || '')) return null;
-    const type = ['pattern', 'motif', 'draw'].includes(it.type) ? it.type : null; if (!type) return null;
+    const type = ['pattern', 'motif', 'draw', 'nail', 'image'].includes(it.type) ? it.type : null; if (!type) return null;
+    if (type === 'image') {
+      if (typeof it.src !== 'string' || it.src.length > 200000 || !PNG.test(it.src)) return null;
+      const n = (v, a, b, d) => (typeof v === 'number' && isFinite(v) ? Math.max(a, Math.min(b, v)) : d);
+      return { id: it.id, type, kind: 'image', src: it.src, w: n(it.w, 4, 30, 10), count: Math.round(n(it.count, 1, 20, 1)), seed: 1, p: {}, motif: /^[a-z_]{1,24}$/.test(it.motif || '') ? it.motif : undefined };
+    }
+    if (type === 'nail') {
+      const n = (v, a, b, d) => (typeof v === 'number' && isFinite(v) ? Math.max(a, Math.min(b, v)) : d);
+      if (!/^[\w-]{1,40}$/.test(it.conceptId || '') || !(T.CONCEPTS || []).some(c => c.id === it.conceptId)) return null;
+      const pi = typeof it.paletteIndex === 'string' ? (/^k[\w-]{1,40}$/.test(it.paletteIndex) ? it.paletteIndex : 0) : Math.round(n(it.paletteIndex, 0, 20, 0));
+      const fingers = (Array.isArray(it.fingers) ? it.fingers : [0, 1, 2, 3, 4]).map(x => Math.round(n(x, 0, 4, 0))).filter((x, i, a) => a.indexOf(x) === i);
+      const o = { id: it.id, type, kind: 'nail', conceptId: it.conceptId, paletteIndex: pi, side: ['left', 'right', 'foot'].includes(it.side) ? it.side : 'left', fingers: fingers.length ? fingers : [0, 1, 2, 3, 4], count: Math.round(n(it.count, 1, 10, 1)), seed: 1, p: {}, w: 12,
+        shape: (T.SHAPES || []).some(x => x.id === it.shape) ? it.shape : 'oval', length: ['short', 'medium', 'long'].includes(it.length) ? it.length : 'medium' };
+      if (HANDS[it.set]) o.set = it.set; else if (it.set === 'mine' && Array.isArray(it.widths) && it.widths.length === 5) { o.set = 'mine'; o.widths = it.widths.map(w => n(w, 5, 22, 12)); } else o.set = 'M';
+      return o;
+    }
     if (type === 'pattern' && !PATTERNS[it.kind]) return null;
     if (type === 'motif' && !MOTIFS[it.kind]) return null;
     const num = (v, a, b, d) => (typeof v === 'number' && isFinite(v) ? Math.max(a, Math.min(b, v)) : d);
@@ -317,5 +366,5 @@
     return { paper: PAPERS[s.paper] ? s.paper : 'a4', mirror: s.mirror === true, guides: s.guides !== false, scale: sc, items: (Array.isArray(s.items) ? s.items : []).map(cleanItem).filter(Boolean).slice(0, 40) };
   }
 
-  T.stickers = { rulerLen, MOTIFS, PATTERNS, HANDS, FINGERS, PAPERS, nailPath, motifSvg, patternSvg, drawSvg, pieces, layout, sheetSvg, previewSvg, pdfFromJpeg, sheetPdf, wordsToPattern, aiPattern, cleanItem, cleanSheet, rng };
+  T.stickers = { gaugeSvg, nailSpec, rulerLen, MOTIFS, PATTERNS, HANDS, FINGERS, PAPERS, nailPath, motifSvg, patternSvg, drawSvg, imageSvg, pieces, layout, sheetSvg, previewSvg, pdfFromJpeg, sheetPdf, wordsToPattern, aiPattern, cleanItem, cleanSheet, rng };
 })(typeof window !== 'undefined' ? window : globalThis);

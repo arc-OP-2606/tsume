@@ -101,6 +101,7 @@
     return { title: 'トッピング', body, stage: 4, tid: 'topping' };
   }
   function itemName(t) {
+    if (t.k === 'photo') return T.scan ? T.scan.nameOf(t) : D.KINDS.photo.name;
     if (t.k === 'sticker') return (D.STICKERS[t.v] || { name: '' }).name + 'のシール';
     if (t.k === 'flake') return 'ホログラム';
     if (t.k === 'stone') return (D.STONES[t.v] || D.STONES.clear).name + 'ストーン';

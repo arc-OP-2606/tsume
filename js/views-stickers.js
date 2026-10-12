@@ -51,7 +51,7 @@
   // ---- 作る（手描き）
   function drawEditor(e) {
     const pen = e.pen || { c: '#2B2226', w: 4 };
-    return `<p class="small muted">指やタッチペンで、四角の中に描きます。ワンコ・ネコ・バラなど。描いた絵は、下の大きさでシールになります。</p>
+    return `<p class="small muted">指やタッチペンで、四角の中に描きます。ワンコ・ネコ・バラなど。描いた絵は、下の大きさでシールになります。</p><button class="link mix-link" data-act="dw-start">${ICON.wand}大きな爪に描いて、作り方も出す（描く）${ICON.chev}</button>
       <div class="st-pad-wrap"><canvas id="st-pad" width="600" height="600" aria-label="描くところ"></canvas></div>
       <div class="st-colors">${colorIn('pen', 'ペンの色', pen.c)}${U.seg([{ id: '2', name: '細' }, { id: '4', name: '中' }, { id: '8', name: '太' }], 'st-pen-w', String(pen.w), 'aria-label="線の太さ"')}<button class="chip" data-act="st-undo">ひとつ戻す</button><button class="chip" data-act="st-clear">消す</button></div>
       ${range('w', '大きさ', e.w, 4, 20, 0.5, 'mm')}`;
@@ -63,7 +63,7 @@
       <div class="mx-head"><h2 class="mx-h">印刷するシート</h2>${U.seg(PAPERS, 'st-paper', sh.paper, 'aria-label="紙の大きさ"')}</div>
       <div class="st-sheet-view" style="aspect-ratio:${P.w}/${P.h}">${svg.replace('<svg ', '<svg class="st-sheet-svg" ')}</div>
       ${L.overflow.length ? `<p class="st-warn">${L.overflow.length}枚がはみ出しています。数を減らすか、紙を大きくしてください。</p>` : ''}
-      <ul class="st-items">${sh.items.map(it => `<li>${S.previewSvg(it, 34)}<span>${esc(it.type === 'pattern' ? S.PATTERNS[it.kind].name : it.type === 'motif' ? S.MOTIFS[it.kind].name : '手描き')}${it.type === 'pattern' && it.set ? `（手のセット ${it.set}）` : `（${it.w}mm）`}</span><span class="st-count"><button class="iconbtn" data-act="st-count" data-id="${it.id}" data-d="-1" aria-label="減らす">${ICON.minus}</button><b class="num">${it.count}</b><button class="iconbtn" data-act="st-count" data-id="${it.id}" data-d="1" aria-label="増やす">${ICON.plus}</button></span><button class="iconbtn" data-act="st-remove" data-id="${it.id}" aria-label="外す">${ICON.trash}</button></li>`).join('') || '<li class="small muted">まだありません。上で作って「シートに足す」を押してください。</li>'}</ul>
+      <ul class="st-items">${sh.items.map(it => `<li>${S.previewSvg(it, 34)}<span>${esc(it.type === 'pattern' ? S.PATTERNS[it.kind].name : it.type === 'motif' ? S.MOTIFS[it.kind].name : it.type === 'image' ? 'AIの絵' : '手描き')}${it.type === 'pattern' && it.set ? `（手のセット ${it.set}）` : `（${it.w}mm）`}</span><span class="st-count"><button class="iconbtn" data-act="st-count" data-id="${it.id}" data-d="-1" aria-label="減らす">${ICON.minus}</button><b class="num">${it.count}</b><button class="iconbtn" data-act="st-count" data-id="${it.id}" data-d="1" aria-label="増やす">${ICON.plus}</button></span><button class="iconbtn" data-act="st-remove" data-id="${it.id}" aria-label="外す">${ICON.trash}</button></li>`).join('') || '<li class="small muted">まだありません。上で作って「シートに足す」を押してください。</li>'}</ul>
       <div class="st-opts"><label class="st-check"><input type="checkbox" data-check="mirror" ${sh.mirror ? 'checked' : ''}><span>左右反転して印刷（裏から貼る素材のとき）</span></label><label class="st-check"><input type="checkbox" data-check="guides" ${sh.guides !== false ? 'checked' : ''}><span>切り取り線を入れる</span></label></div>
       <div class="btnrow"><button class="btn rose" data-act="st-print" ${sh.items.length ? '' : 'disabled'}>${ICON.share}印刷する</button><button class="btn ghost" data-act="st-pdf" ${sh.items.length ? '' : 'disabled'}>PDFを作る</button><button class="btn ghost" data-act="st-test">テスト印刷（目盛り）</button></div>
       <p class="small muted">印刷は「実際のサイズ（100%）」「フチあり」で。「用紙に合わせる」や「フチなし」だと大きさが変わります。先に普通紙にテスト印刷して、目盛りを定規で測ってください。</p>
@@ -165,6 +165,14 @@
   }
 
   const persist = st => { try { localStorage.setItem('tsume.stickers.v1', JSON.stringify(stk(st).sheet)); } catch (e) {} };
+  /** ほかの画面（エディタ・描く）からシートに足す。足せたら true */
+  function addToSheet(st, raw) {
+    const k = stk(st), it = S.cleanItem(Object.assign({ id: newId() }, raw));
+    if (!it) return false;
+    if (k.sheet.items.length >= 40) { T.app.toast('シートに入るのは40種類まで'); return false; }
+    k.sheet.items.push(it); persist(st); return true;
+  }
+  T.stickersUI = { addToSheet, stk };
   if (hasDOM) {
     window.addEventListener('tsume:render', e => { if (e.detail && e.detail.view === 'stickers') drawPad(); });
     document.addEventListener('input', ev => {
@@ -240,7 +248,7 @@
     'st-paper': (el, st) => { stk(st).sheet.paper = el.dataset.v; persist(st); T.app.render(); },
     // アプリ（iPhone・Android）では印刷ダイアログが開かないので、PDF を共有シートへ
     'st-print': (el, st) => { const sh = stk(st).sheet; if (T.native && T.native.isNative) { makePdf(sh); return; } printSvg(S.sheetSvg(sh).svg, S.PAPERS[sh.paper]); },
-    'st-test': (el, st) => { const sh = Object.assign({}, stk(st).sheet, { items: [] }); if (T.native && T.native.isNative) { makePdf(sh); return; } printSvg(S.sheetSvg(sh).svg, S.PAPERS[sh.paper]); },
+    'st-test': (el, st) => { const sh = Object.assign({}, stk(st).sheet, { items: [], gauge: true }); if (T.native && T.native.isNative) { makePdf(sh); return; } printSvg(S.sheetSvg(sh).svg, S.PAPERS[sh.paper]); },
     'st-pdf': (el, st) => makePdf(stk(st).sheet),
     'st-ink': (el, st) => { stk(st).ink = el.dataset.v || ''; T.app.render(); },
     'st-material': (el, st) => {

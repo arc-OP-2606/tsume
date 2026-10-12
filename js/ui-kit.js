@@ -36,6 +36,10 @@
     voice: svg('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
     camera: svg('<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.2l1.4-2h5.8l1.4 2h2.2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.5"/>'),
     drop: svg('<path d="M12 3.5c3 4 6 7 6 10.5a6 6 0 0 1-12 0c0-3.5 3-6.5 6-10.5z"/>'),
+    up: svg('<path d="M12 19V6M6.5 11.5 12 6l5.5 5.5"/>', 1.8),
+    down: svg('<path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/>', 1.8),
+    undo: svg('<path d="M9 7 4.5 11.5 9 16"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-2"/>', 1.8),
+    zoom: svg('<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5M10.5 8v5M8 10.5h5"/>', 1.8),
     mic: svg('<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/>'),
   };
   const st = () => T.app.state;
@@ -47,7 +51,7 @@
   }
   const navBtn = (view, icon, label) => `<button class="iconbtn" data-act="nav" data-view="${view}" aria-label="${label}">${icon}</button>`;
   function brandBar() {
-    return `<header class="brandbar"><button class="brand" data-act="nav" data-view="try" aria-label="tsumé のはじめの画面へ"><span class="logo latin">tsum<em>é</em></span></button><nav class="brand-nav" aria-label="メニュー">${navBtn('shop', ICON.bag, 'SHOP（アイテム）')}${navBtn('mine', ICON.heart, 'マイデザイン')}${navBtn('materials', ICON.book, '素材とトッピングの図鑑')}${navBtn('about', ICON.help, '使い方')}</nav></header>`;
+    return `<header class="brandbar"><button class="brand" data-act="nav" data-view="try" aria-label="tsumé のはじめの画面へ"><span class="logo latin">tsum<em>é</em></span></button><nav class="brand-nav" aria-label="メニュー">${navBtn('lab', ICON.wand, 'つくる・まなぶ')}${navBtn('shop', ICON.bag, 'SHOP（アイテム）')}${navBtn('mine', ICON.heart, 'マイデザイン')}${navBtn('materials', ICON.book, '素材とトッピングの図鑑')}${navBtn('about', ICON.help, '使い方')}</nav></header>`;
   }
   function progress(n, total) {
     const segs = Array.from({ length: total }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('');

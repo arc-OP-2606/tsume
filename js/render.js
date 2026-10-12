@@ -446,7 +446,7 @@
     const col = (role) => { const r = roles[role] || role; return (typeof r === 'string' && r[0] === '#') ? r : palette[r] || palette[role] || '#CCCCCC'; };
     const ctx = { L, col, rng, id, p: spec.p || {}, defs: [], out: [], matte: false };
     // nail bed
-    ctx.out.push(`<rect x="-2" y="-2" width="104" height="${L + 20}" fill="#F0D2C6"/><path d="${tipRegion(L * 0.26)}" fill="#F7EAE3" opacity="0.9"/><ellipse cx="50" cy="${L - 6}" rx="22" ry="12" fill="#F8ECE6" opacity="0.7"/>`);
+    if (!opts.print) ctx.out.push(`<rect x="-2" y="-2" width="104" height="${L + 20}" fill="#F0D2C6"/><path d="${tipRegion(L * 0.26)}" fill="#F7EAE3" opacity="0.9"/><ellipse cx="50" cy="${L - 6}" rx="22" ry="12" fill="#F8ECE6" opacity="0.7"/>`);
     if (spec.over && R[spec.over]) R[spec.over](ctx);
     else if (spec.t && !['one_color', 'sheer', 'peel_one', 'bare_gloss', 'sugar_matte', 'gradient', 'magnet', 'magnet_line', 'velvet', 'magnet_polish', 'mirror', 'tortoise', 'marble', 'nuance', 'cheek', 'tweed', 'aura', 'butterfly', 'gemstone', 'glitter_polish', 'glass_french', 'french', 'skinny_french'].includes(spec.t)) R.sheer(ctx);
     if (spec.t && R[spec.t]) R[spec.t](ctx);
@@ -457,13 +457,13 @@
       R[layer.t](lctx);
       if (lctx.matte) ctx.matte = true;
     });
-    if (!ctx.matte && !ctx.p.matte) ctx.out.push(gloss(ctx));
+    if (!ctx.matte && !ctx.p.matte && !opts.print) ctx.out.push(gloss(ctx));
     let tops = '';
     if (spec.toppings && spec.toppings.length && global.TSUME.renderToppings) {
       const r = global.TSUME.renderToppings(spec.toppings, L, { finger: opts.finger || 0 });
       tops = `<defs>${r.defs}</defs><g class="tsume-tops">${r.svg}</g>`;
     }
-    return `<g class="tsume-nail"><defs><clipPath id="${id}cp"><path d="${d}"/></clipPath>${ctx.defs.join('')}</defs><g clip-path="url(#${id}cp)">${ctx.out.join('')}</g><path d="${d}" fill="none" stroke="rgba(70,30,35,0.22)" stroke-width="1.3"/>${tops}</g>`;
+    return `<g class="tsume-nail"><defs><clipPath id="${id}cp"><path d="${d}"/></clipPath>${ctx.defs.join('')}</defs><g clip-path="url(#${id}cp)">${ctx.out.join('')}</g>${opts.print ? '' : `<path d="${d}" fill="none" stroke="rgba(70,30,35,0.22)" stroke-width="1.3"/>`}${tops}</g>`;
   }
 
   const FINGER_NAMES = ['親指', '人差し指', '中指', '薬指', '小指'];

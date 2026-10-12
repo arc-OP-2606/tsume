@@ -12,7 +12,7 @@
     sheet: null, saved: [], matTab: 'materials', matStore: 'all', season: E.seasonOf(), fx: null, sceneGroup: 'special',
     partItem: null, make: null, checks: {}, shopTab: 'color', shopItem: null, shopCycle: {},
     palettes: {}, kotoba: { text: '', result: null, busy: false }, voiceGuide: false,
-    myColors: { gel: [], polish: [] }, mix: { target: null, kind: 'gel' },
+    myColors: { gel: [], polish: [], items: [] }, mix: { target: null, kind: 'gel' },
   };
 
   // ---- 保存（端末内だけ）
@@ -32,9 +32,19 @@
     state.myColors = cleanMyColors(read(K.mycolors, null));
   }
   // 持っている色（ジェル・マニキュアは混ぜられないので分ける）
+  const PHOTO_KINDS = ['stone', 'pearl', 'metal', 'sticker', 'other'];
+  function cleanOwnedItem(c) {
+    if (!c || typeof c !== 'object' || !ID.test(c.id || '')) return null;
+    if (c.shop) return T.SHOP && T.SHOP.byId(c.shop) ? { id: c.id, shop: c.shop } : null;
+    // 写真から取り込んだパーツ（画像は端末の IndexedDB。ここには鍵だけ）
+    if (!/^idb:[\w-]{1,60}$/.test(c.img || '')) return null;
+    const mm = typeof c.mm === 'number' && isFinite(c.mm) ? Math.min(30, Math.max(1, c.mm)) : 4;
+    return { id: c.id, img: c.img, kind: PHOTO_KINDS.includes(c.kind) ? c.kind : 'other', mm, color: HEX.test(c.color || '') ? c.color : '#CCCCCC', name: String(c.name || '').replace(/[<>&"'`]/g, '').slice(0, 20) };
+  }
   function cleanMyColors(v) {
-    const out = { gel: [], polish: [] };
+    const out = { gel: [], polish: [], items: [] };
     if (!v || typeof v !== 'object') return out;
+    if (Array.isArray(v.items)) out.items = v.items.map(cleanOwnedItem).filter(Boolean).slice(0, 120);
     ['gel', 'polish'].forEach(k => { if (Array.isArray(v[k])) out[k] = v[k].filter(c => c && ID.test(c.id || '') && HEX.test(c.hex || '')).slice(0, 60).map(c => ({ id: c.id, hex: c.hex.toUpperCase(), name: String(c.name || c.hex).replace(/[<>&"'`]/g, '').slice(0, 20), shop: ID.test(c.shop || '') ? c.shop : undefined })); });
     return out;
   }
@@ -54,8 +64,10 @@
     if (WORD.test(t.shape || '')) o.shape = t.shape;
     if (own(T.TOPPINGS.SIZES, t.s)) o.s = t.s;
     if (num(t.r)) o.r = t.r;
+    if (num(t.z)) o.z = Math.min(2.5, Math.max(0.4, t.z));
     if (HEX.test(t.col || '')) o.col = t.col;
     if (ID.test(t.shop || '')) o.shop = t.shop;
+    if (t.k === 'photo') { if (!/^idb:[\w-]{1,60}$/.test(t.ref || '')) return null; o.ref = t.ref; o.mm = num(t.mm) ? Math.min(30, Math.max(1, Math.round(t.mm * 10) / 10)) : 4; }
     return o;
   }
   function cleanPaint(p) {
@@ -193,8 +205,9 @@
     window.addEventListener('popstate', () => { back(); });
     load();
     const hash = (location.hash || '').replace('#', '');
-    if (['try', 'mine', 'materials', 'colors', 'about', 'shop', 'kotoba', 'mix', 'stickers'].includes(hash)) state.view = hash;
+    if (['try', 'mine', 'materials', 'colors', 'about', 'shop', 'kotoba', 'mix', 'stickers', 'lab', 'draw', 'recipes', 'gallery', 'scan', 'aigen', 'aivision', 'gallery-admin'].includes(hash) && T.views[hash]) state.view = hash;
   }
   T.app = { state, render, go, back, act, persist, toast, saveCurrent, markMade, isSaved, sanitizeCustom, cleanMyColors, peek: () => (history.length ? history[history.length - 1].view : null), STEPS: T.STEPS || [], hasDOM };
-  if (hasDOM) render();
+  // 共有リンク（#d=…）で開いたときは、そのデザインの作り方を開く（開けなければ、いつもの画面）
+  if (hasDOM && !(T.share && T.share.openFromHash(state))) render();
 })(typeof window !== 'undefined' ? window : globalThis);

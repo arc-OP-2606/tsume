@@ -69,39 +69,85 @@
   window.addEventListener('blur', () => { if (dnd) endDnd(); });
   document.addEventListener('click', e => { if (Date.now() < swallowUntil && e.target.closest && e.target.closest('[data-drag="shop"]')) { e.stopPropagation(); e.preventDefault(); } }, true);
 
-  // エディタ: パーツをドラッグで動かす／タップで選ぶ／爪をタップして置く
-  let drag = null;
+  // エディタ: パーツをドラッグで動かす／タップで選ぶ／空いている所をタップ（選んでいれば選択を外す・いなければ置く）。
+  // 2本の指がほぼ同時（250ms 以内）に触れたら、選んでいるパーツの大きさと角度（ピンチ・ひねり）。
+  // ペンで描いている間は指（手のひら）を無視する。動かしている途中に来た2本目の指も無視する
+  let drag = null, pinch = null;
+  const ptrs = new Map();
   function nailPos(svg, e) {
     const g = svg.querySelector('.tsume-nail'); if (!g) return null;
     const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
     const q = pt.matrixTransform(g.getScreenCTM().inverse()), L = +svg.dataset.l;
-    return { x: Math.min(0.92, Math.max(0.08, q.x / 100)), y: Math.min(0.94, Math.max(0.06, q.y / L)), L, inside: q.x >= 0 && q.x <= 100 && q.y >= 0 && q.y <= L };
+    return { x: q.x / 100, y: q.y / L, L, inside: q.x >= 0 && q.x <= 100 && q.y >= 0 && q.y <= L };
+  }
+  const clampIn = p => (window.TSUME && TSUME.editor && TSUME.editor.inNail ? TSUME.editor.inNail(p) : { x: Math.min(0.92, Math.max(0.08, p.x)), y: Math.min(0.94, Math.max(0.06, p.y)) });
+  const posOf = top => { const pos = top.querySelector('.tsume-top-pos'), tf = pos.getAttribute('transform') || '', m = tf.match(/rotate\(([-\d.]+)/), t = tf.match(/translate\(([-\d.]+)[ ,]+([-\d.]+)/); return { pos, rot: m ? +m[1] : 0, tx: t ? +t[1] : 0, ty: t ? +t[2] : 0 }; };
+  const selectedTop = svg => { const st = window.TSUME && TSUME.app && TSUME.app.state, i = st && st.editor ? st.editor.selected : null; return i == null ? null : svg.querySelector(`.tsume-top[data-i="${i}"]`); };
+  function startPinch(svg) {
+    const top = (drag && drag.top) || selectedTop(svg); if (!top) return false;
+    const [a, b] = Array.from(ptrs.values()), st = TSUME.app.state, list = TSUME.editor.listOf(st), it = list[+top.dataset.i]; if (!it) return false;
+    const P = posOf(top), z0 = TSUME.editor.scaleOf(it);
+    pinch = { svg, top, i: +top.dataset.i, pos: P.pos, tx: P.tx, ty: P.ty, rot0: P.rot, z0, z: z0, r: P.rot, d0: Math.hypot(b.x - a.x, b.y - a.y) || 1, a0: Math.atan2(b.y - a.y, b.x - a.x) };
+    if (drag) { drag = null; }
+    return true;
   }
   document.addEventListener('pointerdown', e => {
-    const svg = e.target.closest && e.target.closest('.ed-stage svg.ed-nail'); if (!svg) return;
+    const stage = e.target.closest && e.target.closest('.ed-stage'); if (!stage || e.target.closest('button, input, label')) return;
+    const svg = stage.querySelector('svg.ed-nail'); if (!svg) return;
+    const penDown = Array.from(ptrs.values()).some(p => p.type === 'pen');
+    if (penDown && e.pointerType === 'touch') return; // ペンを持つ手のひら
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType, t: Date.now() });
+    if (ptrs.size === 2) {
+      const first = Array.from(ptrs.values())[0], soon = Date.now() - first.t < 250, still = !drag || !drag.moved;
+      if (e.pointerType === 'touch' && first.type === 'touch' && (soon || still) && startPinch(svg)) { e.preventDefault(); return; }
+      ptrs.delete(e.pointerId); return; // 遅れて来た指・ペンと指の組み合わせは無視
+    }
+    if (ptrs.size > 2) { ptrs.delete(e.pointerId); return; }
+    if (!e.target.closest('svg.ed-nail')) { drag = { svg, place: true, outside: true, x0: e.clientX, y0: e.clientY }; return; }
     e.preventDefault();
     const top = e.target.closest('.tsume-top');
     if (top) {
-      const pos = top.querySelector('.tsume-top-pos'), m = (pos.getAttribute('transform') || '').match(/rotate\(([-\d.]+)/);
-      drag = { svg, pos, i: +top.dataset.i, x0: e.clientX, y0: e.clientY, moved: false, rot: m ? m[1] : 0 };
+      const P = posOf(top);
+      drag = { svg, top, pos: P.pos, i: +top.dataset.i, x0: e.clientX, y0: e.clientY, moved: false, rot: P.rot };
       try { svg.setPointerCapture(e.pointerId); } catch (err) {}
     } else drag = { svg, place: true, x0: e.clientX, y0: e.clientY };
   });
   document.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.set(e.pointerId, Object.assign(ptrs.get(e.pointerId), { x: e.clientX, y: e.clientY }));
+    if (pinch && ptrs.size === 2) {
+      const [a, b] = Array.from(ptrs.values()), d = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+      pinch.z = Math.min(2.2, Math.max(0.5, pinch.z0 * (d / pinch.d0)));
+      pinch.r = Math.round((pinch.rot0 + ((ang - pinch.a0) * 180) / Math.PI) % 360);
+      pinch.pos.setAttribute('transform', `translate(${pinch.tx} ${pinch.ty}) rotate(${pinch.r}) scale(${(pinch.z / pinch.z0).toFixed(3)})`);
+      e.preventDefault(); return;
+    }
     if (!drag || drag.place) return;
     if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) > 4) drag.moved = true;
     if (!drag.moved) return;
     const p = nailPos(drag.svg, e); if (!p) return;
-    drag.last = p;
-    drag.pos.setAttribute('transform', `translate(${(p.x * 100).toFixed(1)} ${(p.y * p.L).toFixed(1)}) rotate(${drag.rot})`);
+    const c = clampIn(p); drag.last = c;
+    drag.pos.setAttribute('transform', `translate(${(c.x * 100).toFixed(1)} ${(c.y * p.L).toFixed(1)}) rotate(${drag.rot})`);
   });
-  document.addEventListener('pointercancel', () => { drag = null; });
-  document.addEventListener('pointerup', e => {
+  const finish = (e, cancel) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    const app = window.TSUME && TSUME.app;
+    if (pinch) { if (ptrs.size === 0) { const p = pinch; pinch = null; if (!cancel && app) app.act('ed-transform', null, { i: p.i, z: p.z, r: p.r }); } return; }
     if (!drag) return;
-    const d = drag, app = window.TSUME && window.TSUME.app; drag = null;
-    if (!app) return;
-    if (d.place) { if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 6) { const p = nailPos(d.svg, e); if (p && p.inside) app.act('ed-place', null, p); } return; }
+    const d = drag; drag = null;
+    if (cancel || !app) return;
+    const tap = Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < 6;
+    if (d.place) {
+      if (!tap) return;
+      if (app.state.editor && app.state.editor.selected != null) { app.act('ed-deselect', null, {}); return; }
+      if (d.outside) return;
+      const p = nailPos(d.svg, e); if (p && p.inside) { const c = clampIn(p); app.act('ed-place', null, { x: c.x, y: c.y }); }
+      return;
+    }
     if (d.moved && d.last) app.act('ed-move', null, { i: d.i, x: d.last.x, y: d.last.y });
     else app.act('ed-select', null, { i: d.i });
-  });
+  };
+  document.addEventListener('pointerup', e => finish(e, false));
+  document.addEventListener('pointercancel', e => finish(e, true));
 })();

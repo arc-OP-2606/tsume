@@ -31,6 +31,7 @@
     chain: { name: 'チェーン', mat: 'chain', minutes: 2, unit: 20, big: true, mm: 1.6 },
     sticker: { name: 'シール', mat: 'sticker', minutes: 1, unit: 15, mm: 5, flat: true },
     flake: { name: 'ホログラム', mat: 'flakes', minutes: 1, unit: 4.2, mm: 1.2, flat: true },
+    photo: { name: '持ってるパーツ', mat: 'own_parts', minutes: 1, unit: 13, mm: 3.4 }, // 写真で取り込んだ自分のパーツ（js/scan.js）。描く大きさは item.mm
   };
   const LAYOUTS = {
     one: { name: '根元にひと粒', items: [{ x: 0.5, y: 0.8, s: 'M' }] },
@@ -79,6 +80,7 @@
     chain: { name: 'ネイルチェーン', cat: 'parts', tiers: { coin: { p: 'ネイルパーツ（チェーン）', s: 'セリア / ダイソー', y: 110 }, petit: { p: 'メタルチェーン', s: '専門店', y: 330 } } },
     flower3d: { name: '3Dフラワー', cat: 'parts', tiers: { coin: { p: 'ネイルパーツ（フラワー）', s: 'セリア / ダイソー', y: 110 } } },
     nail_glue: { name: 'ネイルグルー', cat: 'tool', tiers: { coin: { p: 'ネイルグルー', s: 'セリア', y: 110 } } },
+    own_parts: { name: '持ってるパーツ', cat: 'parts', tiers: { coin: { p: '持ってるパーツ（写真で登録）', s: '手持ち', y: 0 }, petit: { p: '持ってるパーツ（写真で登録）', s: '手持ち', y: 0 }, kodawari: { p: '持ってるパーツ（写真で登録）', s: '手持ち', y: 0 }, luxe: { p: '持ってるパーツ（写真で登録）', s: '手持ち', y: 0 } } },
   });
   T.TOPPINGS = { STONES, PEARLS, METALS, BIJOUX, FLOWERS, CHARMS, STUDS, STICKERS, SIZES, KINDS, TRAY, LAYOUTS, LEVELS, SCENE_RULES, NO_SCENE_RULE, MOOD_KINDS };
 })(typeof window !== 'undefined' ? window : globalThis);

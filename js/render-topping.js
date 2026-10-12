@@ -212,7 +212,7 @@
   function renderTopping(item, L, defs, idx, delayIdx) {
     const kd = D.KINDS[item.k]; if (!kd) return '';
     const x = (item.x == null ? 0.5 : item.x) * 100, y = (item.y == null ? 0.5 : item.y) * L;
-    const size = kd.unit * (D.SIZES[item.s || 'M'] || 1), delay = ((delayIdx || 0) * 0.37) % 2.6;
+    const size = kd.unit * (typeof item.z === 'number' && isFinite(item.z) ? item.z : D.SIZES[item.s || 'M'] || 1), delay = ((delayIdx || 0) * 0.37) % 2.6;
     let inner = '';
     switch (item.k) {
       case 'stone': inner = stone(defs, size, item.v, delay); break;
@@ -225,6 +225,7 @@
       case 'bullion': inner = bullion(defs, size, item.v); break;
       case 'sticker': inner = sticker(defs, size, item.v, item.col); break;
       case 'flake': inner = flake(defs, size, item.v); break;
+      case 'photo': inner = T.scan ? T.scan.partSvg(item, size / kd.unit, defs) : ''; break;
     }
     return `<g class="tsume-top" data-i="${idx}" data-k="${item.k}"><g class="tsume-top-pos" transform="translate(${f1(x)} ${f1(y)}) rotate(${item.r || 0})">${inner}</g></g>`;
   }

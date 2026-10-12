@@ -1,0 +1,1174 @@
+{
+ "v": 1,
+ "updated": "2026-10-12",
+ "items": [
+  {
+   "id": "p-glass-drop",
+   "title": "お呼ばれの硝子",
+   "by": "tsumé 編集部",
+   "note": "根元にパールとオーロラのストーン。式でも上品な量です。",
+   "design": {
+    "v": 1,
+    "conceptId": "glass_drop",
+    "paletteIndex": 1,
+    "sel": {
+     "scene": "wedding_guest",
+     "tier": "petit",
+     "mood": "classic",
+     "topping": "point",
+     "length": "medium",
+     "shape": "almond",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "S",
+        "v": "white"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.8,
+        "s": "M",
+        "v": "aurora"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.33,
+        "y": 0.83,
+        "s": "S",
+        "v": "white"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.79,
+        "s": "M",
+        "v": "aurora"
+       },
+       {
+        "k": "pearl",
+        "x": 0.67,
+        "y": 0.83,
+        "s": "S",
+        "v": "white"
+       }
+      ],
+      []
+     ],
+     "right": [
+      [],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "S",
+        "v": "white"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.8,
+        "s": "M",
+        "v": "aurora"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.33,
+        "y": 0.83,
+        "s": "S",
+        "v": "white"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.79,
+        "s": "M",
+        "v": "aurora"
+       },
+       {
+        "k": "pearl",
+        "x": 0.67,
+        "y": 0.83,
+        "s": "S",
+        "v": "white"
+       }
+      ],
+      []
+     ]
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-kintsugi",
+   "title": "金継ぎと小花",
+   "by": "tsumé 編集部",
+   "note": "金のひびに、金の小花とパール。お正月や和装に。",
+   "design": {
+    "v": 1,
+    "conceptId": "kintsugi",
+    "paletteIndex": 0,
+    "sel": {
+     "scene": "newyear",
+     "tier": "petit",
+     "mood": "wa",
+     "topping": "point",
+     "length": "medium",
+     "shape": "oval",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [],
+      [
+       {
+        "k": "bullion",
+        "x": 0.33,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.5,
+        "y": 0.79,
+        "s": "M",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.67,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       }
+      ],
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.74,
+        "s": "M",
+        "v": "gold",
+        "shape": "flower"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.83,
+        "s": "M",
+        "v": "cream"
+       }
+      ],
+      []
+     ],
+     "right": [
+      [],
+      [
+       {
+        "k": "bullion",
+        "x": 0.33,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.5,
+        "y": 0.79,
+        "s": "M",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.67,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       }
+      ],
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.74,
+        "s": "M",
+        "v": "gold",
+        "shape": "flower"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.83,
+        "s": "M",
+        "v": "cream"
+       }
+      ],
+      []
+     ]
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-moon-tortoise",
+   "title": "べっ甲に金の月",
+   "by": "tsumé 編集部",
+   "note": "琥珀色のべっ甲に、シャンパン色のストーンと金のブリオン。",
+   "design": {
+    "v": 1,
+    "conceptId": "moon_tortoise",
+    "paletteIndex": 0,
+    "sel": {
+     "scene": "party",
+     "tier": "petit",
+     "mood": "glam",
+     "topping": "lots",
+     "length": "long",
+     "shape": "almond",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.8,
+        "s": "M",
+        "v": "champagne"
+       }
+      ],
+      [
+       {
+        "k": "bullion",
+        "x": 0.18,
+        "y": 0.258,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.34,
+        "y": 0.229,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.5,
+        "y": 0.2,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.66,
+        "y": 0.229,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.82,
+        "y": 0.258,
+        "s": "S",
+        "v": "gold"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.45,
+        "y": 0.7,
+        "s": "L",
+        "v": "champagne"
+       },
+       {
+        "k": "stone",
+        "x": 0.68,
+        "y": 0.79,
+        "s": "S",
+        "v": "champagne"
+       },
+       {
+        "k": "bullion",
+        "x": 0.62,
+        "y": 0.58,
+        "s": "S",
+        "v": "gold"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.68,
+        "y": 0.84,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      []
+     ],
+     "right": [
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.8,
+        "s": "M",
+        "v": "champagne"
+       }
+      ],
+      [
+       {
+        "k": "bullion",
+        "x": 0.18,
+        "y": 0.258,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.34,
+        "y": 0.229,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.5,
+        "y": 0.2,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.66,
+        "y": 0.229,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.82,
+        "y": 0.258,
+        "s": "S",
+        "v": "gold"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.45,
+        "y": 0.7,
+        "s": "L",
+        "v": "champagne"
+       },
+       {
+        "k": "stone",
+        "x": 0.68,
+        "y": 0.79,
+        "s": "S",
+        "v": "champagne"
+       },
+       {
+        "k": "bullion",
+        "x": 0.62,
+        "y": 0.58,
+        "s": "S",
+        "v": "gold"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.68,
+        "y": 0.84,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      []
+     ]
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-ribbon",
+   "title": "リボンとハートの約束",
+   "by": "tsumé 編集部",
+   "note": "淡いピンクに、リボンのシールと金のハート。デートの日に。",
+   "design": {
+    "v": 1,
+    "conceptId": "ribbon_promise",
+    "paletteIndex": 0,
+    "sel": {
+     "scene": "date",
+     "tier": "petit",
+     "mood": "sweet",
+     "topping": "point",
+     "length": "short",
+     "shape": "round",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.76,
+        "s": "M",
+        "v": "gold",
+        "shape": "heart"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "sticker",
+        "x": 0.5,
+        "y": 0.56,
+        "s": "M",
+        "v": "ribbon",
+        "col": "#F28BA8",
+        "shop": "se_kid_ribbon"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.33,
+        "y": 0.85,
+        "s": "S",
+        "v": "pink"
+       },
+       {
+        "k": "pearl",
+        "x": 0.67,
+        "y": 0.85,
+        "s": "S",
+        "v": "pink"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "S",
+        "v": "white"
+       }
+      ]
+     ],
+     "right": [
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.76,
+        "s": "M",
+        "v": "gold",
+        "shape": "heart"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "sticker",
+        "x": 0.5,
+        "y": 0.56,
+        "s": "M",
+        "v": "ribbon",
+        "col": "#F28BA8",
+        "shop": "se_kid_ribbon"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.33,
+        "y": 0.85,
+        "s": "S",
+        "v": "pink"
+       },
+       {
+        "k": "pearl",
+        "x": 0.67,
+        "y": 0.85,
+        "s": "S",
+        "v": "pink"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "S",
+        "v": "white"
+       }
+      ]
+     ]
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-stardust",
+   "title": "推しの夜空",
+   "by": "tsumé 編集部",
+   "note": "紺の夜空に、銀の星ときらめくストーンをたっぷり。",
+   "design": {
+    "v": 1,
+    "conceptId": "stardust",
+    "paletteIndex": 2,
+    "sel": {
+     "scene": "oshi",
+     "tier": "petit",
+     "mood": "glam",
+     "topping": "lots",
+     "length": "long",
+     "shape": "square",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.74,
+        "s": "M",
+        "v": "silver",
+        "shape": "star"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.18,
+        "y": 0.258,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.34,
+        "y": 0.229,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.2,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.66,
+        "y": 0.229,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.82,
+        "y": 0.258,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.45,
+        "y": 0.7,
+        "s": "L",
+        "v": "aurora"
+       },
+       {
+        "k": "charm",
+        "x": 0.66,
+        "y": 0.8,
+        "s": "S",
+        "v": "silver",
+        "shape": "star"
+       },
+       {
+        "k": "stone",
+        "x": 0.62,
+        "y": 0.56,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "S",
+        "v": "aurora"
+       }
+      ]
+     ],
+     "right": [
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.74,
+        "s": "M",
+        "v": "silver",
+        "shape": "star"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.18,
+        "y": 0.258,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.34,
+        "y": 0.229,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.2,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.66,
+        "y": 0.229,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.82,
+        "y": 0.258,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.45,
+        "y": 0.7,
+        "s": "L",
+        "v": "aurora"
+       },
+       {
+        "k": "charm",
+        "x": 0.66,
+        "y": 0.8,
+        "s": "S",
+        "v": "silver",
+        "shape": "star"
+       },
+       {
+        "k": "stone",
+        "x": 0.62,
+        "y": 0.56,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "S",
+        "v": "aurora"
+       }
+      ]
+     ]
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-goldfish",
+   "title": "金魚鉢の泡",
+   "by": "tsumé 編集部",
+   "note": "金魚のまわりに、泡のようなクリアストーン。浴衣の日に。",
+   "design": {
+    "v": 1,
+    "conceptId": "goldfish_bowl",
+    "paletteIndex": 0,
+    "sel": {
+     "scene": "yukata",
+     "tier": "petit",
+     "mood": "wa",
+     "topping": "point",
+     "length": "short",
+     "shape": "oval",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [],
+      [
+       {
+        "k": "stone",
+        "x": 0.64,
+        "y": 0.3,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.7,
+        "y": 0.42,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.3,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.45,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.6,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.76,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "M",
+        "v": "white"
+       }
+      ],
+      []
+     ],
+     "right": [
+      [],
+      [
+       {
+        "k": "stone",
+        "x": 0.64,
+        "y": 0.3,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.7,
+        "y": 0.42,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.3,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.45,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.6,
+        "s": "S",
+        "v": "clear"
+       },
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.76,
+        "s": "S",
+        "v": "clear"
+       }
+      ],
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.82,
+        "s": "M",
+        "v": "white"
+       }
+      ],
+      []
+     ]
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-snowy-night",
+   "title": "雪の夜の金の星",
+   "by": "tsumé 編集部",
+   "note": "深い緑に金の星。小指はフラッシュの金で、クリスマスらしく。",
+   "design": {
+    "v": 1,
+    "conceptId": "snowy_night",
+    "paletteIndex": 0,
+    "sel": {
+     "scene": "xmas",
+     "tier": "petit",
+     "mood": "glam",
+     "topping": "lots",
+     "length": "medium",
+     "shape": "oval",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.8,
+        "s": "M",
+        "v": "white"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.7,
+        "s": "M",
+        "v": "gold",
+        "shape": "star"
+       },
+       {
+        "k": "stone",
+        "x": 0.34,
+        "y": 0.83,
+        "s": "S",
+        "v": "champagne"
+       },
+       {
+        "k": "stone",
+        "x": 0.66,
+        "y": 0.83,
+        "s": "S",
+        "v": "champagne"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "bullion",
+        "x": 0.33,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.5,
+        "y": 0.79,
+        "s": "M",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.67,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       }
+      ]
+     ],
+     "right": [
+      [
+       {
+        "k": "pearl",
+        "x": 0.5,
+        "y": 0.8,
+        "s": "M",
+        "v": "white"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.7,
+        "s": "M",
+        "v": "gold",
+        "shape": "star"
+       },
+       {
+        "k": "stone",
+        "x": 0.34,
+        "y": 0.83,
+        "s": "S",
+        "v": "champagne"
+       },
+       {
+        "k": "stone",
+        "x": 0.66,
+        "y": 0.83,
+        "s": "S",
+        "v": "champagne"
+       }
+      ],
+      [],
+      [
+       {
+        "k": "bullion",
+        "x": 0.33,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.5,
+        "y": 0.79,
+        "s": "M",
+        "v": "gold"
+       },
+       {
+        "k": "bullion",
+        "x": 0.67,
+        "y": 0.83,
+        "s": "S",
+        "v": "gold"
+       }
+      ]
+     ],
+     "paint": {
+      "left": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "t": "flash",
+        "c": {
+         "base": "#E9C981",
+         "light": "#FFF1C2"
+        },
+        "shop": "nf_flash_gold"
+       }
+      ],
+      "right": [
+       null,
+       null,
+       null,
+       null,
+       {
+        "t": "flash",
+        "c": {
+         "base": "#E9C981",
+         "light": "#FFF1C2"
+        },
+        "shop": "nf_flash_gold"
+       }
+      ]
+     }
+    },
+    "skin": "natural"
+   }
+  },
+  {
+   "id": "p-butterfly",
+   "title": "瑠璃色の蝶",
+   "by": "tsumé 編集部",
+   "note": "蝶の羽の色に、銀の蝶のパーツと青いストーン。",
+   "design": {
+    "v": 1,
+    "conceptId": "butterfly_dust",
+    "paletteIndex": 0,
+    "sel": {
+     "scene": "outing",
+     "tier": "petit",
+     "mood": "art",
+     "topping": "point",
+     "length": "long",
+     "shape": "almond",
+     "scope": "full",
+     "hand": "right",
+     "method": "gel",
+     "time": "t60",
+     "level": "some"
+    },
+    "custom": {
+     "left": [
+      [],
+      [],
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.6,
+        "s": "M",
+        "v": "silver",
+        "shape": "butterfly"
+       },
+       {
+        "k": "stone",
+        "x": 0.36,
+        "y": 0.83,
+        "s": "S",
+        "v": "blue"
+       },
+       {
+        "k": "stone",
+        "x": 0.64,
+        "y": 0.83,
+        "s": "S",
+        "v": "blue"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.84,
+        "s": "S",
+        "v": "aurora"
+       }
+      ],
+      []
+     ],
+     "right": [
+      [],
+      [],
+      [
+       {
+        "k": "charm",
+        "x": 0.5,
+        "y": 0.6,
+        "s": "M",
+        "v": "silver",
+        "shape": "butterfly"
+       },
+       {
+        "k": "stone",
+        "x": 0.36,
+        "y": 0.83,
+        "s": "S",
+        "v": "blue"
+       },
+       {
+        "k": "stone",
+        "x": 0.64,
+        "y": 0.83,
+        "s": "S",
+        "v": "blue"
+       }
+      ],
+      [
+       {
+        "k": "stone",
+        "x": 0.5,
+        "y": 0.84,
+        "s": "S",
+        "v": "aurora"
+       }
+      ],
+      []
+     ]
+    },
+    "skin": "natural"
+   }
+  }
+ ]
+}

@@ -32,7 +32,7 @@
   function materialsList(state) {
     const stores = ['all', 'ダイソー', 'セリア', 'キャンドゥ', '専門店', 'ブランド'];
     const brandish = s => /OPI|シャネル|ディオール|スワロフスキー|KOKOIST|プリジェル|ageha|uka/.test(s);
-    const rows = Object.entries(T.MATERIALS).map(([id, m]) => ({ id, m }));
+    const rows = Object.entries(T.MATERIALS).filter(([id]) => id !== 'own_parts').map(([id, m]) => ({ id, m })); // 持ってるパーツ（写真で登録・0円）は材料の一覧に出さない
     const match = tierObj => { const st = state.matStore; if (st === 'all') return true; if (st === 'ブランド') return brandish(tierObj.s); if (st === '専門店') return /専門店|ネイル工房|グレースガーデン|BLAZE/.test(tierObj.s); return tierObj.s.includes(st); };
     const list = rows.map(({ m }) => { const tiers = T.TIERS.filter(t => m.tiers[t] && match(m.tiers[t])); if (!tiers.length) return ''; return `<div class="mat-card"><div><b>${esc(m.name)}</b><div class="tier-strip">${tiers.map(t => `<span>${esc(T.TIER_INFO[t].label)}: ${esc(m.tiers[t].p)}（${esc(m.tiers[t].s)}）${m.tiers[t].y.toLocaleString()}円</span>`).join('')}</div></div><div class="pr num">${m.tiers[tiers[0]].y.toLocaleString()}円〜</div></div>`; }).join('');
     return `<div class="store-tabs">${stores.map(s => `<button class="pill" data-act="store" data-s="${esc(s)}" aria-pressed="${state.matStore === s}">${s === 'all' ? 'すべて' : esc(s)}</button>`).join('')}</div>
@@ -69,9 +69,11 @@
     </div>`;
   }
   T.views.materials = st => {
-    const tabs = U.seg([{ id: 'materials', name: '素材' }, { id: 'toppings', name: 'トッピング' }], 'mattab', st.matTab, 'aria-label="図鑑の切り替え"');
-    return `${U.bar({ back: true, title: '素材とトッピングの図鑑' })}<div class="tabs">${tabs}</div>${st.matTab === 'toppings' ? partsBook() : materialsList(st)}`;
+    const tabs = U.seg([{ id: 'materials', name: '素材' }, { id: 'toppings', name: 'トッピング' }].concat(T.brushes ? [{ id: 'brushes', name: '筆' }] : []), 'mattab', st.matTab, 'aria-label="図鑑の切り替え"');
+    const body = st.matTab === 'toppings' ? partsBook() : st.matTab === 'brushes' && T.brushes ? T.brushes.book(st) : materialsList(st);
+    return `${U.bar({ back: true, title: '図鑑' })}<div class="tabs">${tabs}</div>${body}`;
   };
+
 
   T.views.about = () => {
     const card = (n, h, p, act, extra, label) => `<div class="card flat about-card"><div class="eyebrow">${n}</div><h3>${esc(h)}</h3><p class="small muted">${esc(p)}</p><button class="btn ghost sm" data-act="${act}" ${extra}>${esc(label)}</button></div>`;
@@ -83,13 +85,14 @@
         ${card('04', '利き手は、置くだけ', '利き手側は描かず、パーツを置くだけの簡単な作り方に自動で差し替えます。', 'start', '', '質問に答える')}
         ${card('05', '作るモードで、キレイに', '経験に合わせて手順の細かさが変わります。1手順ずつ大きな文字で、硬化のタイマーつき。最後に仕上がりを5つの点で確かめます。', 'start', '', 'デザインを選ぶ')}
         ${card('06', 'ことばで咲く', '「金木犀の帰り道」のような一行から、その色で作れる3案と名前を出します。', 'nav', 'data-view="kotoba"', 'ことばで咲かせる')}
+        ${card('10', '描き方レシピ', 'ドットの花・2色の花びら・バラ・ワンコとネコの顔・細い線。お手本の絵が1手順ずつ描き足されます。使う筆と、重ねる順番の決まりつき。', 'nav', 'data-view="recipes"', 'レシピを見る')}
         ${card('09', 'シール工房', '気に入るシールが無ければ、色や形を変えて自分で。家のプリンターで刷れる水転写シール用紙に、爪の実寸で印刷します。', 'nav', 'data-view="stickers"', 'シールを作る')}
         ${card('08', '色を混ぜて作る', '持っていない色でも、持っている色を混ぜて近い色が作れます。絵の具と同じ混ざり方で計算し、色と割合と混ぜ方を出します。', 'nav', 'data-view="mix"', '色を混ぜる')}
         ${card('07', '声で聞く', '作るモードの音声案内は、手順とタイマーを読み上げます。tsumé ソムリエは、映える角度・光・背景を約30〜60秒で話します。声は端末の読み上げです。', 'start', '', 'デザインを選ぶ')}
       </div>
-      ${T.ai.available() ? `<div class="card flat"><h3>AIで読み取る</h3><p class="small muted">「ことばで咲く」「ソムリエ」「色を混ぜる」「シール工房」で、打った言葉（色や模様の名前）やデザインの説明を、中継サーバーを通して Google Gemini に送ります。tsumé は保存しません。</p><div class="btnrow">${T.ai.consent() === 'yes' ? '<button class="btn ghost sm" data-act="ai-off">AIを使わない</button>' : '<button class="btn ghost sm" data-act="ai-ask">AIを使う</button>'}</div></div>` : ''}
+      ${T.ai.available() ? `<div class="card flat"><h3>AIで読み取る</h3><p class="small muted">「ことばで咲く」「ソムリエ」「色を混ぜる」「シール工房」「AIでシール絵」「写真から作り方」で、打った言葉（色や模様の名前）、デザインの説明、選んだモチーフ・描き方・色を、中継サーバーを通して Google Gemini に送ります。tsumé は保存しません。</p><div class="btnrow">${T.ai.consent() === 'yes' ? '<button class="btn ghost sm" data-act="ai-off">AIを使わない</button>' : '<button class="btn ghost sm" data-act="ai-ask">AIを使う</button>'}</div></div>` : ''}${T.aiv ? T.aiv.aboutCard() : ''}
       <div class="card flat"><h3>参考にした情報</h3><ul class="notes">${T.HOWTO.SOURCES.map(([t]) => `<li>${esc(t)}</li>`).join('')}</ul><p class="small muted">作り方は2026年10月に、ネイルの協会・公的機関・メーカー・ネイリストの情報をもとにまとめました。硬化の時間などは、お使いのライトとジェルの説明書を優先してください。</p></div>
-      <div class="card flat"><h3>価格と情報について</h3><p class="small muted">価格は2026年10月のWeb調査に基づく目安（税込）。店・時期で変わります。個人情報の収集・広告・課金はありません。保存した内容はこの端末の中だけにあります。作るモードの「声で操作する」を押したときだけ、マイクの声がブラウザの音声認識に送られます。</p></div>`;
+      <div class="card flat"><h3>価格と情報について</h3><p class="small muted">価格は2026年10月のWeb調査に基づく目安（税込）。店・時期で変わります。広告・課金はありません。保存した内容はこの端末の中だけにあります。送るのは、AIに同意して使うとき（言葉・写真）、「みんなに見せる」で投稿・通報するとき、マイクのボタンを押したとき（声をブラウザの音声認識へ）だけです。<a href="https://arc-op-2606.github.io/tsume-privacy/" target="_blank" rel="noopener">プライバシーポリシー</a></p></div>`;
   };
 
   Object.assign(T.actions, {
