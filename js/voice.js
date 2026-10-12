@@ -1,10 +1,13 @@
 /* tsumé — 読み上げと、声の合図（使える端末だけ）。ソムリエ・作るモードの音声案内・色を混ぜる・描き方レシピ・描く・写真から作り方で共通。
    読み上げの声は2つ。呼ぶ側はどちらでも speak(lines, { onLine, onEnd, rate, pitch, voice }) の同じ形:
-   - 自然な声（Google Gemini。紹介ビデオと同じ声）: 1文ずつ中継（relay/ の POST /v1/speech）で声にして、1つの Audio で順に鳴らす。次の2文は先に取りに行く。
+   - 自然な声（Google の AI の声。中継が Gemini か Cloud Text-to-Speech で作る）: 1文ずつ中継（relay/ の POST /v1/speech）で声にして、1つの Audio で順に鳴らす。次の2文は先に取りに行く。
+     届く音声は WAV（Gemini）か MP3（Cloud）。届いた content-type のまま鳴らす。
      使うのは、中継があり・ネットにつながり・利用者が同意したときだけ（AI の同意 T.ai.consent()==='yes' か、この声の同意 'tsume.speech.v1'）。
      ※ 'tsume.voice.v1' は app.js が音声案内のオン・オフ（true/false）に使っているので、声の選択には使わない（保存のたびに消される）。
      どちらも無いときは、初めて読み上げるときに確認のシートを出し、選んだらそのまま読む（もう一度押させない）。
      取った声は端末に保存して（Cache Storage。使えなければ IndexedDB。最大300文・古いものから消す）、次からは通信しない。
+     保存した声には、中継が返す「どのサービスの・どの声か」（x-tsume-voice）を一緒に残す。中継の声が変わったと分かったら（Gemini → Cloud・声の名前・速さ）、
+     前の声は使わずに取り直す（取れないときだけ前の声で鳴らす）。中継が代わりの声で返したもの（x-tsume-fallback）は保存しない。
      最初の文が8秒で届かない・中継のエラー・オフラインのときは、その読み上げを端末の声に切り替えて続ける。
    - 端末の声: speechSynthesis（外に送らない） */
 (function (global) {
@@ -82,14 +85,25 @@
   }
   const available = () => deviceOK() || (naturalPossible() && mode() !== 'device');
 
-  // ---- 取った声の保存（端末の中）。キーは声＋文
-  const STORE = 'tsume-voice-v1', KEEP = 300, MEM = 40;
+  // ---- 取った声の保存（端末の中）。キーは声＋文。1つの声は { b: Blob, vid: 中継の x-tsume-voice | null }
+  const STORE = 'tsume-voice-v1', KEEP = 300, MEM = 40, VIDS = 'tsume.speech.vid.v1';
   const keyOf = (voice, text) => 'https://tsume-voice.invalid/v1/' + voice + '?t=' + encodeURIComponent(text);
+  // 中継が今使っている声（声の種類ごと。最後に届いた x-tsume-voice）
+  const VID = /^[A-Za-z0-9:._-]{1,120}$/;
+  let vids = null;
+  function vidNow(voice) {
+    if (!vids) { try { const o = JSON.parse(localStorage.getItem(VIDS) || 'null'); vids = o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { vids = {}; } }
+    return typeof vids[voice] === 'string' ? vids[voice] : null;
+  }
+  function learn(voice, vid) { if (vidNow(voice) === vid) return; vids[voice] = vid; try { localStorage.setItem(VIDS, JSON.stringify(vids)); } catch (e) {} }
+  /** 保存した声を今使ってよいか。中継の声をまだ知らなければ使う。印の無い声（印を残す前に保存した声）は Gemini で作ったもの */
+  const current = (voice, vid) => { const now = vidNow(voice); return !now || (vid ? vid === now : /^gemini:/.test(now)); };
   const CS = {
-    async get(k) { const r = await (await caches.open(STORE)).match(k); return r ? r.blob() : null; },
-    async put(k, b) {
-      const c = await caches.open(STORE);
-      await c.put(k, new Response(b, { headers: { 'content-type': b.type || 'audio/wav' } }));
+    async get(k) { const r = await (await caches.open(STORE)).match(k); return r ? { b: await r.blob(), vid: r.headers.get('x-tsume-voice') || null } : null; },
+    async put(k, it) {
+      const c = await caches.open(STORE), h = { 'content-type': it.b.type || 'audio/wav' };
+      if (it.vid) h['x-tsume-voice'] = it.vid;
+      await c.put(k, new Response(it.b, { headers: h }));
       const ks = await c.keys(); /* 入れた順。多すぎたら古いものから消す */
       for (const x of ks.slice(0, Math.max(0, ks.length - KEEP))) await c.delete(x);
     },
@@ -103,10 +117,10 @@
   }));
   const done = t => new Promise((res, rej) => { t.oncomplete = res; t.onerror = t.onabort = () => rej(t.error); });
   const IDB = {
-    async get(k) { const db = await idb(), t = db.transaction('clips'), q = t.objectStore('clips').get(k); await done(t); const x = q.result; return x ? new Blob([x.buf], { type: x.type }) : null; },
-    async put(k, b) {
-      const buf = await b.arrayBuffer(), db = await idb(), t = db.transaction('clips', 'readwrite'), s = t.objectStore('clips');
-      s.put({ k, ts: Date.now(), type: b.type || 'audio/wav', buf });
+    async get(k) { const db = await idb(), t = db.transaction('clips'), q = t.objectStore('clips').get(k); await done(t); const x = q.result; return x ? { b: new Blob([x.buf], { type: x.type }), vid: x.vid || null } : null; },
+    async put(k, it) {
+      const buf = await it.b.arrayBuffer(), db = await idb(), t = db.transaction('clips', 'readwrite'), s = t.objectStore('clips');
+      s.put({ k, ts: Date.now(), type: it.b.type || 'audio/wav', vid: it.vid || null, buf });
       const c = s.count();
       c.onsuccess = () => { let extra = c.result - KEEP; if (extra > 0) s.index('ts').openCursor().onsuccess = e => { const cur = e.target.result; if (cur && extra-- > 0) { cur.delete(); cur.continue(); } }; };
       await done(t);
@@ -119,13 +133,13 @@
     try { if (typeof indexedDB !== 'undefined' && indexedDB) { await idb(); return IDB; } } catch (e) {}
     return null;
   })());
-  const mem = new Map(), inflight = new Map(); /* mem: このページを開いている間だけ、最近の声を手元に置く */
-  const remember = (k, b) => { mem.delete(k); mem.set(k, b); while (mem.size > MEM) mem.delete(mem.keys().next().value); };
+  const mem = new Map(), inflight = new Map(); /* mem: このページを開いている間だけ、最近の声を手元に置く（{ b, vid }） */
+  const remember = (k, it) => { mem.delete(k); mem.set(k, it); while (mem.size > MEM) mem.delete(mem.keys().next().value); };
   function forget(it) { const k = keyOf(it.voice, it.text); mem.delete(k); backend().then(s => s && s.del(k)).catch(() => {}); }
-  /** 1文の声（Blob）。端末にあればそれ、無ければ中継に頼む。取れないときは null */
+  /** 1文の声（Blob）。端末にあって今の中継の声ならそれ、無ければ中継に頼む。取れないときは null */
   function blobOf(text, voice, signal) {
-    const k = keyOf(voice, text);
-    if (mem.has(k)) { const b = mem.get(k); remember(k, b); return Promise.resolve(b); }
+    const k = keyOf(voice, text), m = mem.get(k);
+    if (m && current(voice, m.vid)) { remember(k, m); return Promise.resolve(m.b); }
     /* 取りに行っている途中のものに相乗りする。ただし止めた読み上げのもの（中止済み）は null で終わるので使わない
        （同じ文を続けて読み直したときに、端末の声へ落ちないように） */
     const f = inflight.get(k);
@@ -133,18 +147,27 @@
     const p = (async () => {
       const st = await backend();
       const hit = st ? await st.get(k).catch(() => null) : null;
-      if (hit && hit.size > 44) { remember(k, hit); return hit; }
-      if (!online() || !relay() || (signal && signal.aborted)) return null; /* 止めたあとに頼まない */
+      const old = hit && hit.b && hit.b.size > 44 ? hit : null;
+      if (old && current(voice, old.vid)) { remember(k, old); return old.b; }
+      /* ここから先は、保存が無いか、中継の声が変わる前の声（old）。取り直せたら上書きし、取れないときだけ old で鳴らす */
+      const keep = () => (old ? old.b : null);
+      if (!online() || !relay() || (signal && signal.aborted)) return keep(); /* 止めたあとに頼まない */
       const headers = { 'content-type': 'application/json' };
       if (T.CONFIG.relayToken) headers['x-tsume-token'] = T.CONFIG.relayToken;
-      const r = await fetch(relay() + '/v1/speech', { method: 'POST', headers, body: JSON.stringify({ text, voice }), signal });
-      const type = String((r.headers && r.headers.get('content-type')) || '').split(';')[0].trim().toLowerCase();
-      if (!r.ok || !/^audio\//.test(type)) return null;
+      let r;
+      try { r = await fetch(relay() + '/v1/speech', { method: 'POST', headers, body: JSON.stringify({ text, voice }), signal }); } catch (e) { return keep(); }
+      const head = n => String((r.headers && r.headers.get(n)) || '').trim();
+      const type = head('content-type').split(';')[0].trim().toLowerCase(); /* audio/wav（Gemini）・audio/mpeg（Cloud） */
+      if (!r.ok || !/^audio\//.test(type)) return keep();
       let b = await r.blob();
-      if (!b || b.size <= 44) return null; /* WAV の頭だけ */
+      if (!b || b.size <= 44) return keep(); /* WAV の頭だけ */
       if (b.type !== type) b = new Blob([b], { type });
-      remember(k, b);
-      if (st) st.put(k, b).catch(() => {});
+      if (head('x-tsume-fallback') === '1') return b; /* いつもの声が作れず代わりの声で届いた: 鳴らすが残さない（次はいつもの声で取り直す） */
+      const vid = VID.test(head('x-tsume-voice')) ? head('x-tsume-voice') : null;
+      if (vid) learn(voice, vid);
+      const it = { b, vid };
+      remember(k, it);
+      if (st) st.put(k, it).catch(() => {});
       return b;
     })().catch(() => null);
     const entry = { p, signal };
@@ -234,7 +257,7 @@
     box.innerHTML = `<div class="sheet-back opening" data-vc="cancel" aria-hidden="true"></div>
       <section class="sheet vc-sheet opening" role="dialog" aria-modal="true" aria-labelledby="vc-ask-t">
         <header class="sheet-head"><b id="vc-ask-t">自然な声で読み上げますか？</b><button class="iconbtn" data-vc="cancel" aria-label="閉じる">${x}</button></header>
-        <div class="sheet-body"><p>読み上げる文（手順やソムリエの説明）を Google の AI（Gemini）に送って声にします。18歳以上の方向けです。</p><p class="small muted">端末の声なら、外には送りません。あとから「使い方」で変えられます。</p></div>
+        <div class="sheet-body"><p>読み上げる文（手順やソムリエの説明）を Google の AI（Gemini または Google Cloud の音声合成）に送って声にします。18歳以上の方向けです。</p><p class="small muted">端末の声なら、外には送りません。あとから「使い方」で変えられます。</p></div>
         <footer class="sheet-foot btnrow">${deviceOK() ? '<button class="btn ghost" data-vc="device">端末の声で聞く</button>' : ''}<button class="btn rose" data-vc="natural">自然な声で聞く</button></footer>
       </section>`;
     const pick = v => {

@@ -89,7 +89,7 @@
   function voiceCard() {
     const V = T.voice; if (!V || !V.naturalPossible || !V.naturalPossible()) return '';
     const m = V.mode();
-    return `<div class="card flat voice-card"><h3>読み上げの声</h3><p class="small muted">自然な声は、読み上げる文（手順・ソムリエの説明・色の混ぜ方など）を中継サーバーを通して Google の AI（Gemini）に送り、声にします（18歳以上の方向け）。同じ文の声は中継サーバーと端末に保存して使い回します。端末の声は、外に送りません。${m ? '' : 'まだ選んでいません（初めて読み上げるときに聞きます）。'}</p>${U.seg([{ id: 'natural', name: '自然な声' }, { id: 'device', name: '端末の声' }], 'voice-mode', m || '', 'aria-label="読み上げの声"')}</div>`;
+    return `<div class="card flat voice-card"><h3>読み上げの声</h3><p class="small muted">自然な声は、読み上げる文（手順・ソムリエの説明・色の混ぜ方など）を中継サーバーを通して Google の AI（Gemini または Google Cloud の音声合成）に送り、声にします（18歳以上の方向け）。同じ文の声は中継サーバーと端末に保存して使い回します。端末の声は、外に送りません。${m ? '' : 'まだ選んでいません（初めて読み上げるときに聞きます）。'}</p>${U.seg([{ id: 'natural', name: '自然な声' }, { id: 'device', name: '端末の声' }], 'voice-mode', m || '', 'aria-label="読み上げの声"')}</div>`;
   }
   T.views.about = () => {
     const card = (n, h, p, act, extra, label) => `<div class="card flat about-card"><div class="eyebrow">${n}</div><h3>${esc(h)}</h3><p class="small muted">${esc(p)}</p><button class="btn ghost sm" data-act="${act}" ${extra}>${esc(label)}</button></div>`;
@@ -104,7 +104,7 @@
         ${card('10', '描き方レシピ', 'ドットの花・2色の花びら・バラ・ワンコとネコの顔・細い線。お手本の絵が1手順ずつ描き足されます。使う筆と、重ねる順番の決まりつき。', 'nav', 'data-view="recipes"', 'レシピを見る')}
         ${card('09', 'シール工房', '気に入るシールが無ければ、色や形を変えて自分で。家のプリンターで刷れる水転写シール用紙に、爪の実寸で印刷します。', 'nav', 'data-view="stickers"', 'シールを作る')}
         ${card('08', '色を混ぜて作る', '持っていない色でも、持っている色を混ぜて近い色が作れます。絵の具と同じ混ざり方で計算し、色と割合と混ぜ方を出します。', 'nav', 'data-view="mix"', '色を混ぜる')}
-        ${card('07', '声で聞く', '作るモードの音声案内は、手順とタイマーを読み上げます。tsumé ソムリエは、映える角度・光・背景を約30〜60秒で話します。' + (T.voice && T.voice.naturalPossible && T.voice.naturalPossible() ? '声は、Google の AI（Gemini）で作る自然な声か、端末の読み上げです。初めて読み上げるときにどちらかを選べます（AIを使うことに同意していれば自然な声）。端末の声なら、外には送りません。' : '声は端末の読み上げです（外には送りません）。'), 'start', '', 'デザインを選ぶ')}
+        ${card('07', '声で聞く', '作るモードの音声案内は、手順とタイマーを読み上げます。tsumé ソムリエは、映える角度・光・背景を約30〜60秒で話します。' + (T.voice && T.voice.naturalPossible && T.voice.naturalPossible() ? '声は、Google の AI（Gemini または Google Cloud の音声合成）で作る自然な声か、端末の読み上げです。初めて読み上げるときにどちらかを選べます（AIを使うことに同意していれば自然な声）。端末の声なら、外には送りません。' : '声は端末の読み上げです（外には送りません）。'), 'start', '', 'デザインを選ぶ')}
       </div>
       ${T.ai.available() ? `<div class="card flat"><h3>AIで読み取る</h3><p class="small muted">「ことばで咲く」「ソムリエ」「色を混ぜる」「シール工房」「AIでシール絵」「写真から作り方」で、打った言葉（色や模様の名前）、デザインの説明、選んだモチーフ・描き方・色を、中継サーバーを通して Google Gemini に送ります。tsumé は保存しません。AIを使うと、読み上げも自然な声になります（下の「読み上げの声」で変えられます）。</p><div class="btnrow">${T.ai.consent() === 'yes' ? '<button class="btn ghost sm" data-act="ai-off">AIを使わない</button>' : '<button class="btn ghost sm" data-act="ai-ask">AIを使う</button>'}</div></div>` : ''}${voiceCard()}${T.aiv ? T.aiv.aboutCard() : ''}
       <div class="card flat"><h3>参考にした情報</h3><ul class="notes">${T.HOWTO.SOURCES.map(([t]) => `<li>${esc(t)}</li>`).join('')}</ul><p class="small muted">作り方は2026年10月に、ネイルの協会・公的機関・メーカー・ネイリストの情報をもとにまとめました。硬化の時間などは、お使いのライトとジェルの説明書を優先してください。</p></div>
@@ -127,7 +127,7 @@
     store: (el, st) => { st.matStore = el.dataset.s; T.app.render(); },
     mattab: (el, st) => { st.matTab = el.dataset.v; T.app.render(); },
     'mattab-open': (el, st) => { st.matTab = 'toppings'; T.app.go('materials'); },
-    'voice-mode': el => { T.voice.stop(); T.voice.setMode(el.dataset.v); T.app.render(); T.app.toast(el.dataset.v === 'natural' ? '読み上げは自然な声（Gemini）にしました' : '読み上げは端末の声にしました（外には送りません）'); },
+    'voice-mode': el => { T.voice.stop(); T.voice.setMode(el.dataset.v); T.app.render(); T.app.toast(el.dataset.v === 'natural' ? '読み上げは自然な声にしました' : '読み上げは端末の声にしました（外には送りません）'); },
     'part-open': (el, st) => { const it = { k: el.dataset.k, v: el.dataset.v }; if (el.dataset.shape) it.shape = el.dataset.shape; st.partItem = it; st.sheet = 'part'; T.app.render(); },
     // エディタから図鑑に来たときはエディタへ戻る（指の選択を保つ）。それ以外は見せ場の指で開く
     'part-n': (el, st) => { st.partN = Math.max(1, Math.min(5, +el.dataset.v || 1)); T.app.render(); },

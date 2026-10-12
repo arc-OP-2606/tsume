@@ -87,8 +87,8 @@
   /* 声がどこで作られるかを、実際の動きのとおりに書く */
   function voiceNote() {
     const way = T.voice.route ? T.voice.route() : 'device';
-    if (way === 'natural') return '声は Google の AI（Gemini）で作る自然な声です（読み上げる文を中継サーバー経由で送ります。「使い方」で端末の声に変えられます）。';
-    if (way === 'ask') return '聞くときに、自然な声（Google の AI・Gemini で作る）か、端末の声（外には送りません）かを選べます。';
+    if (way === 'natural') return '声は Google の AI（Gemini または Google Cloud の音声合成）で作る自然な声です（読み上げる文を中継サーバー経由で送ります。「使い方」で端末の声に変えられます）。';
+    if (way === 'ask') return '聞くときに、自然な声（Google の AI（Gemini または Google Cloud の音声合成）で作る）か、端末の声（外には送りません）かを選べます。';
     return '声は端末の読み上げです（外には送りません）。';
   }
   const LABEL = { intro: '印象', scene: 'シーンの光', angle: '映える角度', light: '映える光', bg: '背景・紙', shot: 'おすすめの1枚' };
