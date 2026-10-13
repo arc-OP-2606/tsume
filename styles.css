@@ -1112,3 +1112,18 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .gl-report-user { margin-top: 4px; font-size: 13.5px; color: var(--ink2); }
 .gl-adm-ai { color: var(--ink); }
 .gl-adm-acts .btn[data-a="ban"] { color: var(--rose-strong); border-color: var(--rose-strong); }
+
+/* わたしの手（指を置く置き場） */
+body.myhand-open { overflow: hidden; }
+.myhand { position: fixed; inset: 0; z-index: 90; background: var(--porcelain, #FAF6F2); touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.myhand .mh-pad { position: absolute; inset: 0; }
+.myhand .mh-nails { position: absolute; inset: 0; pointer-events: none; }
+.myhand .mh-nail { position: absolute; width: var(--w, 44px); transform: translate(-50%, -62%); filter: drop-shadow(0 3px 6px rgba(43,34,38,.18)); transition: opacity .2s; }
+.myhand .mh-nail svg { width: 100%; height: auto; display: block; }
+.myhand .mh-nail.keep { animation: mhKeep .5s ease-out both; }
+@keyframes mhKeep { from { transform: translate(-50%, -62%) scale(.8); } to { transform: translate(-50%, -62%) scale(1); } }
+.myhand .mh-msg { position: absolute; left: 16px; right: 16px; top: max(12px, env(safe-area-inset-top)); text-align: center; font-size: 15px; line-height: 1.6; pointer-events: none; color: var(--ink, #2B2226); }
+.myhand .mh-note { position: absolute; left: 16px; right: 16px; bottom: 64px; text-align: center; font-size: 12.5px; line-height: 1.55; color: #7A6A6F; pointer-events: none; }
+.myhand .mh-foot { position: absolute; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); display: flex; gap: 10px; justify-content: center; }
+.myhand-link { margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .myhand .mh-nail.keep { animation: none; } }

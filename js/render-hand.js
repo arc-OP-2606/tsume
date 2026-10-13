@@ -33,6 +33,9 @@
     const skin = SKINS[opts.skin] || SKINS.natural;
     const length = opts.length || 'medium', shape = opts.shape || 'oval';
     const id = nid();
+    // わたしの手（hand-fit.js）: 指と爪の幅だけを変える。保存していなければ 1
+    const ws = typeof opts.handScale === 'number' ? opts.handScale : (T.handFit ? T.handFit.widthScale() : 1);
+    const FING = ws === 1 ? FINGERS : FINGERS.map(f => Object.assign({}, f, { wb: f.wb * ws, wt: f.wt * ws }));
     const defs = [`<linearGradient id="${id}fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0.62" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="${id}m"><rect x="-40" y="-40" width="${W + 80}" height="${H + 80}" fill="url(#${id}fade)"/></mask>`];
     const line = `fill="none" stroke="${skin.line}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"`;
     const fingerG = (f, i) => {
@@ -44,10 +47,10 @@
       g += `<g transform="translate(${(-nw / 2).toFixed(2)} ${top.toFixed(2)}) scale(${s.toFixed(4)})">${T.renderNail(spec, palette, { shape, length, seed: (opts.seed || 0) + (side === 'left' ? 100 : 0), finger: i })}</g>`;
       return `<g class="h-finger" data-f="${i}" transform="translate(${f.bx} ${f.by}) rotate(${f.ang})">${g}</g>`;
     };
-    const parts = [fingerG(FINGERS[0], 0)];
+    const parts = [fingerG(FING[0], 0)];
     parts.push(`<path d="${PALM}" fill="${skin.base}"/>`);
     parts.push(`<path d="M 104 320 C 98 374 108 430 124 470 C 132 500 136 530 138 560 M 312 452 C 296 486 288 520 286 560 M 312 452 C 322 430 314 404 296 392" ${line}/>`);
-    [4, 3, 2, 1].forEach(i => parts.push(fingerG(FINGERS[i], i)));
+    [4, 3, 2, 1].forEach(i => parts.push(fingerG(FING[i], i)));
     const flip = side === 'right' ? `transform="translate(${W} 0) scale(-1 1)"` : '';
     return `<svg class="tsume-hand" viewBox="${opts.viewBox || `0 0 ${W} ${H}`}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${side === 'left' ? '左手' : '右手'}のネイル"><defs>${defs.join('')}</defs><g mask="url(#${id}m)"><g ${flip}>${parts.join('')}</g></g></svg>`;
   }

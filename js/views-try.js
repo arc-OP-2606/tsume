@@ -49,6 +49,7 @@
         <div class="try-cta">
           <button class="btn rose cta" data-act="start">わたしに合うネイルを探す<small>6つの質問に答えるだけ</small></button>
           <div class="links"><button class="link" data-act="edit-try">自分で飾る${U.ICON.chev}</button><button class="link" data-act="open-try">作り方を見る${U.ICON.chev}</button></div>
+          <button class="link myhand-link" data-act="myhand">${U.ICON.hand}${T.handFit && T.handFit.get() ? `わたしの手（${U.esc(T.handFit.SIZES[T.handFit.get().size].name)}）・置き直す` : 'わたしの手にする（指を置くだけ）'}${U.ICON.chev}</button>
         </div>
       </section>`;
   };
@@ -68,4 +69,5 @@
   });
   T.tryPicks = tryPicks;
   T.tryAdopt = adopt;
+  T.tryCurrent = current;
 })(typeof window !== 'undefined' ? window : globalThis);
