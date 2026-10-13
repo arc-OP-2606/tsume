@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>tsumé 指を置く試し</title>
+<style>
+html,body{margin:0;height:100%;background:#FAF6F2;color:#2B2226;font-family:-apple-system,"Hiragino Sans",sans-serif;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#pad{position:fixed;inset:0}
+#msg{position:fixed;left:0;right:0;top:12px;text-align:center;font-size:17px;line-height:1.6;pointer-events:none;padding:0 16px}
+#res{position:fixed;left:0;right:0;bottom:10px;text-align:center;font-size:13px;line-height:1.5;pointer-events:none;padding:0 12px;white-space:pre-wrap}
+.nail{position:fixed;width:34px;height:44px;margin:-22px 0 0 -17px;border-radius:50% 50% 45% 45%;background:linear-gradient(160deg,#F3C9CF,#C9808A);box-shadow:0 2px 6px rgba(0,0,0,.18);pointer-events:none}
+#big{font-size:34px;font-weight:700}
+.ok{color:#2E7D4F}.ng{color:#B3261E}
+</style></head><body>
+<div id="pad"></div>
+<div id="msg">スマホを横向きにして机に置き、<br>左手の指先4本（親指以外）をそっと同時に置いて、2秒待って離してください。</div>
+<div id="res"></div>
+<script>
+(function(){
+  var pad=document.getElementById('pad'),msg=document.getElementById('msg'),res=document.getElementById('res');
+  var peak=[],cancels=0,start=0,maxN=0,round=0,log=[];
+  function clearNails(){document.querySelectorAll('.nail').forEach(function(n){n.remove();});}
+  function draw(list){clearNails();list.forEach(function(p){var d=document.createElement('div');d.className='nail';d.style.left=p.x+'px';d.style.top=p.y+'px';document.body.appendChild(d);});}
+  function pts(e){return Array.prototype.map.call(e.touches,function(t){return{x:Math.round(t.clientX),y:Math.round(t.clientY),r:Math.round((t.radiusX||0)*10)/10};});}
+  function on(e){e.preventDefault();var p=pts(e);if(!start)start=Date.now();if(p.length>=maxN){maxN=p.length;peak=p;}draw(p);}
+  pad.addEventListener('touchstart',on,{passive:false});
+  pad.addEventListener('touchmove',on,{passive:false});
+  pad.addEventListener('touchcancel',function(e){cancels++;},{passive:false});
+  pad.addEventListener('touchend',function(e){e.preventDefault();if(e.touches.length)return;finish();},{passive:false});
+  function finish(){
+    round++;var held=((Date.now()-start)/1000).toFixed(1);
+    var land=innerWidth>innerHeight;
+    var s=peak.slice().sort(function(a,b){return land?a.x-b.x:a.y-b.y;});
+    var gaps=[];for(var i=1;i<s.length;i++)gaps.push(Math.round(Math.hypot(s[i].x-s[i-1].x,s[i].y-s[i-1].y)));
+    var ok=maxN>=4&&cancels===0;
+    draw(peak);
+    msg.innerHTML='<span id="big" class="'+(ok?'ok':'ng')+'">'+(ok?'OK':'だめ')+'</span>　'+round+'回目　同時に読めた指 '+maxN+'本'+(cancels?'　途中で取り消し '+cancels+'回':'');
+    log.push('#'+round+' n='+maxN+' c='+cancels+' t='+held+'s gaps='+gaps.join(',')+' pts='+s.map(function(p){return p.x+':'+p.y+':'+p.r;}).join(' '));
+    res.textContent=log.join('\n')+'\n画面 '+innerWidth+'x'+innerHeight+' dpr='+devicePixelRatio+' '+(land?'横':'縦')+'\n'+navigator.userAgent.replace(/^Mozilla\/5\.0 /,'').slice(0,90);
+    peak=[];maxN=0;cancels=0;start=0;
+  }
+})();
+</script></body></html>
