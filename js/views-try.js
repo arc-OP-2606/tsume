@@ -32,7 +32,7 @@
   T.views.try = st => {
     const { concept, sel, design } = current(st);
     const skins = Object.entries(T.SKINS).map(([k, s]) => `<button class="skin-dot" data-act="skin" data-v="${k}" aria-pressed="${st.skin === k}" aria-label="肌の色 ${s.name}" style="--skin:${s.base}"></button>`).join('');
-    const overlay = `<div class="skins" role="group" aria-label="肌の色">${skins}</div><div class="hint">${U.ICON.hand}<span>爪の上を、指で左右になぞると光る</span></div>`;
+    const overlay = `<div class="skins" role="group" aria-label="肌の色">${skins}</div><div class="hint">${U.ICON.hand}<span>爪をタップすると、光る</span></div>`;
     const stage = U.handStage(design, { sel, side: 'left', viewBox: '50 50 320 380', cls: 'try-stage', overlay });
     const rail = tryPicks(st.season).map((p, i) => {
       const c = U.byId(T.CONCEPTS, p.id), s2 = trySel(c, st), d = E.build(c, s2, { season: st.season }), acc = U.accentOf(c);

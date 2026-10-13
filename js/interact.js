@@ -3,7 +3,17 @@
   'use strict';
   if (typeof document === 'undefined') return;
   const setX = (st, e) => { const r = st.getBoundingClientRect(); st.style.setProperty('--mx', Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width) * 2 - 1)).toFixed(3)); };
-  document.addEventListener('pointerdown', e => { const st = e.target.closest('[data-light]'); if (st) { st.classList.add('touching'); setX(st, e); } });
+  // なぞって光を動かすのはマウスだけ（指でなぞると画面がスクロールして不安定に見えるため）。指はタップで、その爪が光る
+  document.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; const st = e.target.closest('[data-light]'); if (st) { st.classList.add('touching'); setX(st, e); } });
+  let tap = null;
+  document.addEventListener('pointerdown', e => { const f = e.target.closest && e.target.closest('[data-light] .h-finger'); tap = f ? { f, x: e.clientX, y: e.clientY } : null; });
+  document.addEventListener('pointerup', e => {
+    if (!tap) return; const t = tap; tap = null;
+    if (Math.hypot(e.clientX - t.x, e.clientY - t.y) > 8) return;
+    t.f.classList.remove('shine'); void t.f.getBoundingClientRect(); t.f.classList.add('shine');
+    setTimeout(() => t.f.classList.remove('shine'), 1100);
+    try { window.dispatchEvent(new CustomEvent('tsume:select')); } catch (err) {}
+  });
   document.addEventListener('pointermove', e => { const st = e.target.closest('[data-light]'); if (st && st.classList.contains('touching')) setX(st, e); });
   const end = () => document.querySelectorAll('[data-light].touching').forEach(s => s.classList.remove('touching'));
   ['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, end, true));

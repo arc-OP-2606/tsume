@@ -220,10 +220,18 @@ body[data-view="editor"] .toast { top: calc(env(safe-area-inset-top, 0px) + 62px
 .stage.touching .tsume-sheen { opacity: .55; transform: translateX(calc((var(--mx, 0) + 1) * 85px)); transition: opacity .15s, transform .06s linear; }
 .stage.touching .tsume-glint { animation: none; opacity: 1; transform: scale(calc(.8 + (var(--mx, 0) + 1) * .35)); }
 /* 試着の画面を開いたとき、一度だけ光が流れて見せる */
-.try-stage .tsume-sheen { animation: sheenDemo 1.6s ease-in-out .7s 1 both; }
-.try-stage.touching .tsume-sheen { animation: none; }
-@keyframes sheenDemo { 0% { opacity: 0; transform: translateX(0); } 20% { opacity: .55; } 80% { opacity: .55; } 100% { opacity: 0; transform: translateX(170px); } }
-@media (prefers-reduced-motion: reduce) { .try-stage .tsume-sheen { animation: none; } }
+/* 手の絵の爪は、ときどき光が小指から親指へ順に流れる（触らなくても動く）。タップした爪はすぐ光る */
+.stage .tsume-sheen { animation: sheenLoop 7s ease-in-out 1s infinite both; }
+.stage .h-finger[data-f="3"] .tsume-sheen { animation-delay: 1.15s; }
+.stage .h-finger[data-f="2"] .tsume-sheen { animation-delay: 1.3s; }
+.stage .h-finger[data-f="1"] .tsume-sheen { animation-delay: 1.45s; }
+.stage .h-finger[data-f="0"] .tsume-sheen { animation-delay: 1.6s; }
+.stage.touching .tsume-sheen { animation: none; }
+.stage .h-finger.shine .tsume-sheen { animation: sheenOnce .9s ease-out 0s 1 both; }
+.stage .h-finger.shine .tsume-glint { animation: none; opacity: 1; transform: scale(1.5); transition: transform .3s; }
+@keyframes sheenLoop { 0% { opacity: 0; transform: translateX(0); } 3% { opacity: .5; } 17% { opacity: .5; } 20%, 100% { opacity: 0; transform: translateX(170px); } }
+@keyframes sheenOnce { 0% { opacity: 0; transform: translateX(0); } 15% { opacity: .7; } 85% { opacity: .7; } 100% { opacity: 0; transform: translateX(170px); } }
+@media (prefers-reduced-motion: reduce) { .stage .tsume-sheen { animation: none; } .stage .h-finger.shine .tsume-sheen { animation: sheenOnce .9s 1 both; } }
 .stage.paint .h-finger .tsume-nail { animation: paint 0.55s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
 .stage.paint .h-finger[data-f="1"] .tsume-nail { animation-delay: 0.06s; }
 .stage.paint .h-finger[data-f="2"] .tsume-nail { animation-delay: 0.12s; }
