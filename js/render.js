@@ -458,6 +458,8 @@
       if (lctx.matte) ctx.matte = true;
     });
     if (!ctx.matte && !ctx.p.matte && !opts.print) ctx.out.push(gloss(ctx));
+    // なぞったときに爪の上を横切る光の帯（.stage.touching のときだけ見える。マットは光らない）
+    if (!ctx.matte && !ctx.p.matte && !opts.print) ctx.out.push(`<polygon class="tsume-sheen" points="-34,0 -10,0 -46,${L} -70,${L}" fill="#FFFFFF"/>`);
     let tops = '';
     if (spec.toppings && spec.toppings.length && global.TSUME.renderToppings) {
       const r = global.TSUME.renderToppings(spec.toppings, L, { finger: opts.finger || 0 });

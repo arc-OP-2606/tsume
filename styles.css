@@ -212,9 +212,18 @@ body[data-view="editor"] .toast { top: calc(env(safe-area-inset-top, 0px) + 62px
 .tsume-glint { transform-box: fill-box; transform-origin: center; animation: glint 3.2s ease-in-out infinite both; }
 @keyframes glint { 0%, 100% { opacity: 0; transform: scale(0.2); } 40%, 60% { opacity: 1; transform: scale(1); } }
 .stage .tsume-mag { transform-box: fill-box; transform-origin: center; animation: tsumeMag 6s ease-in-out infinite alternate; }
-.stage.touching .tsume-mag { animation: none; transform: translateX(calc(var(--mx, 0) * 30px)); transition: transform 0.08s linear; }
+.stage.touching .tsume-mag { animation: none; transform: translateX(calc(var(--mx, 0) * 90px)); transition: transform 0.08s linear; }
 .stage .tsume-gloss { transition: transform 0.12s ease; }
-.stage.touching .tsume-gloss { transform: translateX(calc(var(--mx, 0) * 10px)); }
+.stage.touching .tsume-gloss { transform: translateX(calc(var(--mx, 0) * 40px)); }
+/* 光の帯: 単位は爪の座標（幅100）。--mx -1〜1 で爪の左の外から右の外まで横切る */
+.tsume-sheen { opacity: 0; transform: translateX(0); transition: opacity .25s; pointer-events: none; }
+.stage.touching .tsume-sheen { opacity: .55; transform: translateX(calc((var(--mx, 0) + 1) * 85px)); transition: opacity .15s, transform .06s linear; }
+.stage.touching .tsume-glint { animation: none; opacity: 1; transform: scale(calc(.8 + (var(--mx, 0) + 1) * .35)); }
+/* 試着の画面を開いたとき、一度だけ光が流れて見せる */
+.try-stage .tsume-sheen { animation: sheenDemo 1.6s ease-in-out .7s 1 both; }
+.try-stage.touching .tsume-sheen { animation: none; }
+@keyframes sheenDemo { 0% { opacity: 0; transform: translateX(0); } 20% { opacity: .55; } 80% { opacity: .55; } 100% { opacity: 0; transform: translateX(170px); } }
+@media (prefers-reduced-motion: reduce) { .try-stage .tsume-sheen { animation: none; } }
 .stage.paint .h-finger .tsume-nail { animation: paint 0.55s cubic-bezier(0.3, 0.7, 0.2, 1) both; }
 .stage.paint .h-finger[data-f="1"] .tsume-nail { animation-delay: 0.06s; }
 .stage.paint .h-finger[data-f="2"] .tsume-nail { animation-delay: 0.12s; }
