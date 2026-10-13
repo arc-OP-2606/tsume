@@ -337,7 +337,7 @@
     'dw-clear': (el, st) => { const w = dws(st); if (!w.d.strokes.length || w.playing) return; commit(st, d => { d.strokes = []; }); T.app.render(); T.app.toast('線を全部消しました（「戻す」で戻せます）'); },
     'dw-play': (el, st) => play(st),
     'dw-steps': (el, st) => { stopPlay(true); st.sheet = 'dw-steps'; T.app.render(); },
-    'dw-say': (el, st) => { if (!T.voice || !T.voice.speak(D.stepsFrom(dws(st).d).map(s => s.text))) T.app.toast('この端末では読み上げできません'); },
+    'dw-say': (el, st) => { if (!T.voice || !T.voice.speak(D.stepsFrom(dws(st).d).map(s => s.text), { voice: 'guide2' })) T.app.toast('この端末では読み上げできません'); },
     'dw-sticker': (el, st) => {
       const w = dws(st), d = w.d;
       if (!T.stickers || !T.stickers.cleanSheet) { T.app.toast('シール工房が読み込まれていません'); return; }

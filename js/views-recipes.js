@@ -240,7 +240,7 @@
     'rc-list': (el, st) => { keep(st); quiet(); T.app.render(); top(); },
     'rc-next': (el, st) => { const r = st.recipe && recipeOf(st.recipe.id); if (!r) return; st.recipe.idx = Math.min(r.steps.length - 1, (+st.recipe.idx || 0) + 1); quiet(); T.app.render(); top(); },
     'rc-prev': (el, st) => { if (!st.recipe) return; st.recipe.idx = Math.max(0, (+st.recipe.idx || 0) - 1); quiet(); T.app.render(); top(); },
-    'rc-say': (el, st) => { const r = st.recipe && recipeOf(st.recipe.id); if (r && T.voice) T.voice.speak(sayLines(r, st.recipe.idx)); },
+    'rc-say': (el, st) => { const r = st.recipe && recipeOf(st.recipe.id); if (r && T.voice) T.voice.speak(sayLines(r, st.recipe.idx), { voice: 'guide2' }); },
     'rc-level': (el, st) => { st.sel.level = el.dataset.v; if (st.answered) st.answered.level = true; T.app.render(); },
     'br-open': (el, st) => { if (!brushOf(el && el.dataset.id)) return; st.brushId = el.dataset.id; st.sheet = 'brush'; T.app.render(); },
     'br-book': (el, st) => { st.matTab = 'brushes'; st.sheet = null; T.app.go('materials'); },

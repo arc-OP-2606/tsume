@@ -1,6 +1,6 @@
 /* tsumé — 音声 tsumé ソムリエ（サンプル）。選んだ色・技法・トッピング・シーンを1つのパッケージとして、
    印象と「映える」角度・光・背景・撮り方を30〜60秒で語る。中身は知識（下の FACTS）から組み、AI（Gemini）は言い回しだけを整える。
-   声は voice.js（同意した人は自然な声 'sommelier'＝Gemini。それ以外は端末の読み上げ）。シートを開いたら、同意がある人だけ声を先に取っておく */
+   声は voice.js（同意した人は自然な声。雰囲気で2人を使い分ける: 華やか・上品・モード・和・すっきり → 'sommelier'、甘い・ナチュラル・透明感・アート → 'sommelier2'。それ以外は端末の読み上げ）。シートを開いたら、同意がある人だけ声を先に取っておく */
 (function (global) {
   'use strict';
   const T = global.TSUME, E = T.engine, U = T.ui;
@@ -35,6 +35,8 @@
   const DARK_BG = { stone: 'ストーンの輝き', stud: 'スタッズの形', charm: 'メタルパーツの輪郭', chain: 'チェーンの輪郭' };
   const MOOD_ADJ = { sheer: '透明感のある', classic: '上品な', glam: '華やかな', mode: 'モードな', sweet: '甘い', natural: 'ナチュラルな', art: 'アートな', wa: '和モダンな', mens: 'すっきりした' };
   const specsOf = d => d.foot || d.left;
+  const SOFT = ['sweet', 'natural', 'sheer', 'art'];
+  const voiceOf = s => (SOFT.includes(s.mood) ? 'sommelier2' : 'sommelier');
   const CHARS_PER_SEC = 5.5, MAX = 330;
   const len = lines => lines.reduce((n, l) => n + l.text.length, 0);
 
@@ -64,7 +66,7 @@
     const lines = [intro, scene].concat(angles.slice(0, 1), light.slice(0, 2), [bg, shot]).map(x => ({ k: x.k, text: x.text }));
     // 60秒を超えそうなら、最後の1枚の前から外す（はじめの2文と最後の1枚は残す）
     while (len(lines) > MAX && lines.length > 4) lines.splice(lines.length - 2, 1);
-    return { lines, sec: Math.round(len(lines) / CHARS_PER_SEC) };
+    return { lines, sec: Math.round(len(lines) / CHARS_PER_SEC), mood: moodId };
   }
 
   // ---- AI（Gemini）で言い回しを整える。事実は足さない
@@ -111,10 +113,10 @@
     const s = st.somm; if (!s) return;
     if (s.playing) { T.voice.stop(); s.playing = false; T.app.render(); return; }
     s.playing = true; T.app.render();
-    const ok = T.voice.speak(s.lines.map(l => l.text), { voice: 'sommelier', onLine: mark, onEnd: () => { s.playing = false; if (st.sheet === 'sommelier') T.app.render(); } });
+    const ok = T.voice.speak(s.lines.map(l => l.text), { voice: voiceOf(s), onLine: mark, onEnd: () => { s.playing = false; if (st.sheet === 'sommelier') T.app.render(); } });
     if (!ok) { s.playing = false; T.app.render(); T.app.toast('この端末では読み上げできません'); }
   }
-  const warm = s => { if (T.voice.warm && s && !s.playing) T.voice.warm(s.lines.map(l => l.text), { voice: 'sommelier' }); };
+  const warm = s => { if (T.voice.warm && s && !s.playing) T.voice.warm(s.lines.map(l => l.text), { voice: voiceOf(s) }); };
   Object.assign(T.actions, {
     'somm-open': async (el, st) => {
       const d = st.current && U.designFor(st.current.conceptId, st.current.paletteIndex); if (!d) return;
@@ -131,5 +133,5 @@
   });
   // 戻る・Esc などでシートが閉じたときも、読み上げを止める
   if (typeof window !== 'undefined') window.addEventListener('tsume:render', () => { const st = T.app.state; if (st.somm && st.somm.playing && st.sheet !== 'sommelier') { T.voice.stop(); st.somm.playing = false; } });
-  T.sommelier = { script, polish, sheet };
+  T.sommelier = { script, polish, sheet, voiceOf };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -219,7 +219,7 @@
     },
     'mix-say': (el, st) => {
       const r = (st.mixLast || [])[+el.dataset.i], m = mx(st); if (!r) return;
-      T.voice.speak([`${m.target.name}は、${M.ratioText(r).replace(/ (\d+)/g, 'を$1').replace(/ : /g, '、')}の割合で混ぜると、${r.level.name}になります。`].concat(M.howTo(r, m.kind)));
+      T.voice.speak([`${m.target.name}は、${M.ratioText(r).replace(/ (\d+)/g, 'を$1').replace(/ : /g, '、')}の割合で混ぜると、${r.level.name}になります。`].concat(M.howTo(r, m.kind)), { voice: 'guide2' });
     },
     'ai-consent': (el, st) => {
       prevConsent(el, st);

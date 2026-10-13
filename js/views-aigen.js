@@ -199,7 +199,7 @@
     'ai-vis-src': (el, st) => { const v = vis(st); v.src = el.dataset.v === 'design' ? 'design' : 'photo'; v.err = null; T.app.render(); },
     'ai-vis-pick': () => { if (hasDOM) fileInput().click(); },
     'ai-vis-run': (el, st) => { const v = vis(st); if (v.busy) return; if (A.ready(st, v.src === 'photo', () => runVision(st))) runVision(st); },
-    'ai-vis-say': (el, st) => { const r = vis(st).result; if (r && T.voice) T.voice.speak(r.steps.map((s, i) => `${i + 1}。${s.text}${CURE[s.cure] ? `。そのあと${CURE[s.cure]}` : ''}`)); },
+    'ai-vis-say': (el, st) => { const r = vis(st).result; if (r && T.voice) T.voice.speak(r.steps.map((s, i) => `${i + 1}。${s.text}${CURE[s.cure] ? `。そのあと${CURE[s.cure]}` : ''}`), { voice: 'guide2' }); },
   });
   T.aigenView = { addToSheet, canAdd, gate };
 })(typeof window !== 'undefined' ? window : globalThis);

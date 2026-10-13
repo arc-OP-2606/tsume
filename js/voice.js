@@ -1,5 +1,5 @@
 /* tsumé — 読み上げと、声の合図（使える端末だけ）。ソムリエ・作るモードの音声案内・色を混ぜる・描き方レシピ・描く・写真から作り方で共通。
-   読み上げの声は2つ。呼ぶ側はどちらでも speak(lines, { onLine, onEnd, rate, pitch, voice }) の同じ形:
+   読み上げの声は2つ。呼ぶ側はどちらでも speak(lines, { onLine, onEnd, rate, pitch, voice }) の同じ形（voice は声の種類 KINDS。場面で使い分ける）:
    - 自然な声（Google の AI の声。中継が Gemini か Cloud Text-to-Speech で作る）: 1文ずつ中継（relay/ の POST /v1/speech）で声にして、1つの Audio で順に鳴らす。次の2文は先に取りに行く。
      届く音声は WAV（Gemini）か MP3（Cloud）。届いた content-type のまま鳴らす。
      使うのは、中継があり・ネットにつながり・利用者が同意したときだけ（AI の同意 T.ai.consent()==='yes' か、この声の同意 'tsume.speech.v1'）。
@@ -68,6 +68,8 @@
   }
 
   // ---- どちらの声で読むか
+  /* 声の種類。guide: 作るモードの音声案内（Kore）・guide2: 説明を聞くボタン（Aoede）・sommelier / sommelier2: ソムリエ（Algieba / Achird。デザインの雰囲気で） */
+  const KINDS = ['guide', 'guide2', 'sommelier', 'sommelier2'], kindOf = v => (KINDS.includes(v) ? v : 'guide');
   const VKEY = 'tsume.speech.v1';
   const relay = () => (T.CONFIG && T.CONFIG.relayUrl ? String(T.CONFIG.relayUrl).replace(/\/$/, '') : '');
   const online = () => typeof navigator === 'undefined' || !navigator || navigator.onLine !== false;
@@ -285,10 +287,10 @@
     closeAsk(); hold(false);
   }
   /** 文を順に読む。onLine(i) は i 番目の文を読み始めたとき、onEnd() は全部読み終えたとき（止めたときは呼ばない）。
-      o.voice: 'guide'（既定）| 'sommelier'。読めないときは false */
+      o.voice: KINDS のどれか（既定 'guide'）。読めないときは false */
   function speak(lines, o) {
     o = o || {};
-    const voice = o.voice === 'sommelier' ? 'sommelier' : 'guide', way = route();
+    const voice = kindOf(o.voice), way = route();
     if (way === 'device' && !deviceOK()) return false;
     stop();
     const items = prepare(lines, voice), my = gen;
@@ -305,7 +307,7 @@
   function warm(lines, o) {
     o = o || {};
     if (route() !== 'natural') return false;
-    const items = prepare(lines, o.voice === 'sommelier' ? 'sommelier' : 'guide').slice(0, 12), my = ++warmGen;
+    const items = prepare(lines, kindOf(o.voice)).slice(0, 12), my = ++warmGen;
     (async () => { for (const it of items) { if (my !== warmGen) return; if (!(await blobOf(it.text, it.voice))) return; } })().catch(() => {});
     return true;
   }
