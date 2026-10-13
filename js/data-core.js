@@ -140,16 +140,18 @@
   ];
 
   const SHAPES = [
-    { id: 'round',     name: 'ラウンド',  desc: 'どんな指にも。小さい爪が上品に。' },
-    { id: 'oval',      name: 'オーバル',  desc: '指が長く見える。いちばん人気。' },
-    { id: 'square',    name: 'スクエア',  desc: '今の気分。強さと潔さ。' },
-    { id: 'almond',    name: 'アーモンド', desc: '節が目立つ指をなめらかに。' },
-    { id: 'ballerina', name: 'バレリーナ', desc: '細く、長く、モードに。' },
+    { id: 'oval',      name: 'オーバル',       desc: '指が長く見える。いちばん人気。' },
+    { id: 'almond',    name: 'アーモンド',     desc: '細くすぼまる、いちばん上品な形。' },
+    { id: 'stiletto',  name: 'スティレット',   desc: '先までとがらせて、強く華やかに。' },
+    { id: 'ballerina', name: 'コフィン',       desc: '先が平らで、アートを描く面が広い。' },
+    { id: 'square',    name: 'ソフトスクエア', desc: '角を丸めた四角。強くて折れにくい。' },
+    { id: 'round',     name: 'ラウンド',       desc: 'どんな指にも。短い爪が上品に。' },
   ];
   const LENGTHS = [
-    { id: 'short',  name: 'ショート',  desc: '日常に。' },
-    { id: 'medium', name: 'ミディアム', desc: 'いちばん描きやすい。' },
-    { id: 'long',   name: 'ロング',    desc: 'アートが映える。' },
+    { id: 'short',  name: 'ショート',         desc: '日常に。' },
+    { id: 'medium', name: 'ミディアム',       desc: 'いちばん描きやすい。' },
+    { id: 'long',   name: 'ロング',           desc: 'アートが映える。' },
+    { id: 'xlong',  name: 'エクストラロング', desc: '長さ出しで、主役の指先に。' },
   ];
   const SCOPES = [
     { id: 'full',   name: '両手10本', desc: '全部の指に。' },

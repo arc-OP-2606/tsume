@@ -335,7 +335,7 @@
       const pi = typeof it.paletteIndex === 'string' ? (/^k[\w-]{1,40}$/.test(it.paletteIndex) ? it.paletteIndex : 0) : Math.round(n(it.paletteIndex, 0, 20, 0));
       const fingers = (Array.isArray(it.fingers) ? it.fingers : [0, 1, 2, 3, 4]).map(x => Math.round(n(x, 0, 4, 0))).filter((x, i, a) => a.indexOf(x) === i);
       const o = { id: it.id, type, kind: 'nail', conceptId: it.conceptId, paletteIndex: pi, side: ['left', 'right', 'foot'].includes(it.side) ? it.side : 'left', fingers: fingers.length ? fingers : [0, 1, 2, 3, 4], count: Math.round(n(it.count, 1, 10, 1)), seed: 1, p: {}, w: 12,
-        shape: (T.SHAPES || []).some(x => x.id === it.shape) ? it.shape : 'oval', length: ['short', 'medium', 'long'].includes(it.length) ? it.length : 'medium' };
+        shape: (T.SHAPES || []).some(x => x.id === it.shape) ? it.shape : 'oval', length: (T.LENGTHS || []).some(x => x.id === it.length) ? it.length : 'medium' };
       if (HANDS[it.set]) o.set = it.set; else if (it.set === 'mine' && Array.isArray(it.widths) && it.widths.length === 5) { o.set = 'mine'; o.widths = it.widths.map(w => n(w, 5, 22, 12)); } else o.set = 'M';
       return o;
     }

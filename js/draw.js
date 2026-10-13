@@ -6,7 +6,7 @@
   const T = global.TSUME;
   const HEX = /^#[0-9a-fA-F]{6}$/, ID = /^[\w-]{1,40}$/;
   const KEY = 'tsume.drawings.v1', MAX_SAVED = 20, MAX_STROKES = 300, MAX_PTS = 800, MAX_TOTAL = 6000;
-  const SHAPES = ['oval', 'round', 'square', 'almond', 'ballerina'], LENGTHS = ['short', 'medium', 'long'];
+  const SHAPES = () => (T.SHAPES || []).map(s => s.id), LENGTHS = () => (T.LENGTHS || []).map(l => l.id);
   const FINGERS = ['親指', '人差し指', '中指', '薬指', '小指'];
   // よく使う10色
   const COLORS = [
@@ -52,7 +52,7 @@
     return {
       id: v.id, v: 1, ts: fin(v.ts) ? Math.round(clamp(v.ts, 0, 1e13)) : 0,
       finger: fin(v.finger) ? Math.round(clamp(v.finger, 0, 4)) : 2,
-      shape: SHAPES.includes(v.shape) ? v.shape : 'oval', length: LENGTHS.includes(v.length) ? v.length : 'medium',
+      shape: SHAPES().includes(v.shape) ? v.shape : 'oval', length: LENGTHS().includes(v.length) ? v.length : 'medium',
       bg, names, strokes,
     };
   }

@@ -412,7 +412,7 @@ body.sheet-open { overflow: hidden; }
 .ed-finger .fl { font-size: 10.5px; white-space: nowrap; }
 .ed-finger[aria-pressed="true"] { background: var(--card); border-color: var(--rose-strong); color: var(--rose-strong); font-weight: 700; box-shadow: 0 4px 12px rgba(171, 90, 105, 0.14); }
 .ed-stage { position: relative; display: flex; justify-content: center; padding: 10px 0 60px; border-radius: 28px; background: var(--bg2); }
-.ed-nail { width: min(240px, 60vw, 28vh); height: auto; display: block; touch-action: none; cursor: pointer; overflow: visible; }
+.ed-nail { height: min(270px, 32vh); width: auto; max-width: 60vw; display: block; touch-action: none; cursor: pointer; overflow: visible; }
 .ed-nail .tsume-top { cursor: grab; }
 .ed-ring { fill: none; stroke: var(--rose-strong); stroke-width: 1.6; stroke-dasharray: 4 4; }
 .ed-tool { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; padding: 2px 6px; border-radius: 999px; background: rgba(43, 34, 38, 0.88); box-shadow: var(--shadow-sm); }
@@ -794,7 +794,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .ed-corner .iconbtn { background: var(--glass); }
 .ed-corner .iconbtn[disabled] { opacity: 0.35; }
 .ed-corner .iconbtn[aria-pressed="true"] { background: var(--rose-soft); color: var(--rose-strong); }
-.ed-stage.zoom .ed-nail { width: min(340px, 84vw, 48vh); }
+.ed-stage.zoom .ed-nail { height: min(420px, 54vh); max-width: 84vw; }
 .ed-tool { max-width: calc(100% - 12px); }
 .ed-tool button { width: 42px; }
 .ed-ranges { display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }

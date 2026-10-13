@@ -27,27 +27,53 @@
   function rgba(c, a) { const [r, g, b] = hexToRgb(c); return `rgba(${r},${g},${b},${a})`; }
   function lum(c) { const [r, g, b] = hexToRgb(c); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; }
 
-  // ---- nail geometry (W = 100)
-  const LEN = { short: 112, medium: 136, long: 166 };
+  // ---- nail geometry (W = 100)。根元は細い U 字、横はほぼまっすぐ、ys（最大幅）から先が形ごとに変わる
+  const LEN = { short: 130, medium: 170, long: 230, xlong: 290 };
+  const TIPS = {
+    oval: [0.62, ys => `C 96 ${ys * 0.3} 76 0 50 0 C 24 0 4 ${ys * 0.3} 4 ${ys}`],
+    almond: [0.72, ys => `C 96 ${ys * 0.42} 60 2 50 0 C 40 2 4 ${ys * 0.42} 4 ${ys}`],
+    stiletto: [0.82, ys => `C 95 ${ys * 0.5} 58 ${ys * 0.1} 50 0 C 42 ${ys * 0.1} 5 ${ys * 0.5} 4 ${ys}`],
+    ballerina: [0.75, ys => `C 95 ${ys * 0.55} 76 ${ys * 0.14} 74 6 Q 73 0 66 0 L 34 0 Q 27 0 26 6 C 24 ${ys * 0.14} 5 ${ys * 0.55} 4 ${ys}`],
+    square: [0.4, () => `L 96 14 Q 96 0 82 0 L 18 0 Q 4 0 4 14`],
+    round: [0.5, ys => `C 96 ${ys * 0.1} 78 0 50 0 C 22 0 4 ${ys * 0.1} 4 ${ys}`],
+  };
+  const r1 = v => Math.round(v * 10) / 10;
   function nailPath(shape, len) {
-    const L = LEN[len] || LEN.medium;
-    const bottom = `Q 100 ${L * 0.72} 93 ${L - 10} Q 50 ${L + 8} 7 ${L - 10} Z`;
-    let top, ys;
-    switch (shape) {
-      case 'square':
-        ys = L * 0.38; top = `L 0 12 Q 0 0 12 0 L 88 0 Q 100 0 100 12 L 100 ${ys}`; break;
-      case 'round':
-        ys = 50; top = `L 0 50 A 50 50 0 0 1 100 50`; break;
-      case 'almond':
-        ys = L * 0.52; top = `L 0 ${ys} C 0 ${L * 0.18} 34 4 50 0 C 66 4 100 ${L * 0.18} 100 ${ys}`; break;
-      case 'ballerina':
-        ys = L * 0.46; top = `L 0 ${ys} L 15 8 Q 17 0 24 0 L 76 0 Q 83 0 85 8 L 100 ${ys}`; break;
-      case 'oval':
-      default:
-        ys = L * 0.46; top = `L 0 ${ys} C 0 ${L * 0.14} 20 0 50 0 C 80 0 100 ${L * 0.14} 100 ${ys}`; break;
+    const L = LEN[len] || LEN.medium, tip = TIPS[shape] || TIPS.oval, ys = r1((L - 62) * tip[0]);
+    const end = shape === 'square' && TIPS[shape] ? ` L 4 ${ys}` : '';
+    const d = `M 14 ${L - 16} C 14 ${L + 4} 86 ${L + 4} 86 ${L - 16} L 96 ${ys} ${tip[1](ys)}${end} Z`.replace(/\d+\.\d{2,}/g, m => String(r1(+m)));
+    return { d, L, ys };
+  }
+  /** その高さ（0=先端〜1=根元）での爪の半幅（幅100に対する割合 0〜0.5）。輪郭の右側を細かく区切って測る */
+  const halfCache = {};
+  function nailHalf(shape, len, yFrac) {
+    const key = (TIPS[shape] ? shape : 'oval') + ':' + (LEN[len] ? len : 'medium');
+    const pts = halfCache[key] || (halfCache[key] = outlineRight(key.split(':')[0], key.split(':')[1]));
+    const L = LEN[key.split(':')[1]], y = Math.max(0, Math.min(1, yFrac)) * L;
+    let best = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      if ((y0 - y) * (y1 - y) <= 0 && y0 !== y1) best = Math.max(best, x0 + (x1 - x0) * (y - y0) / (y1 - y0));
     }
-    const d = `M 7 ${L - 10} Q 0 ${L * 0.72} 0 ${ys} ${top} ${bottom}`;
-    return { d, L };
+    return Math.max(0, (best - 50) / 100);
+  }
+  // 右半分の輪郭（根元の U の右端 → 最大幅 → 先端）を点の列に
+  function outlineRight(shape, len) {
+    const { d } = nailPath(shape, len), tok = d.match(/[MLCQZ]|-?\d+(\.\d+)?/g);
+    const pts = []; let i = 0, cur = [0, 0], cmd = '';
+    const num = () => +tok[i++];
+    const bez = (p) => { for (let k = 1; k <= 24; k++) { const t = k / 24, u = 1 - t; let x, y;
+      if (p.length === 3) { x = u * u * u * cur[0] + 3 * u * u * t * p[0][0] + 3 * u * t * t * p[1][0] + t * t * t * p[2][0]; y = u * u * u * cur[1] + 3 * u * u * t * p[0][1] + 3 * u * t * t * p[1][1] + t * t * t * p[2][1]; }
+      else { x = u * u * cur[0] + 2 * u * t * p[0][0] + t * t * p[1][0]; y = u * u * cur[1] + 2 * u * t * p[0][1] + t * t * p[1][1]; }
+      pts.push([x, y]); } cur = p[p.length - 1]; };
+    while (i < tok.length) {
+      if (/[MLCQZ]/.test(tok[i])) cmd = tok[i++];
+      if (cmd === 'Z') break;
+      if (cmd === 'M' || cmd === 'L') { cur = [num(), num()]; pts.push(cur); }
+      else if (cmd === 'C') bez([[num(), num()], [num(), num()], [num(), num()]]);
+      else if (cmd === 'Q') bez([[num(), num()], [num(), num()]]);
+    }
+    return pts.filter(p => p[0] >= 50); // 右半分だけ（左右対称）
   }
   // smile line (french boundary) at height y: curved
   const smile = (y) => `M -6 ${y + 9} Q 50 ${y - 9} 106 ${y + 9}`;
@@ -432,7 +458,7 @@
   function gloss(c) {
     const f = c.id + 'gl';
     c.defs.push(`<filter id="${f}" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>`);
-    return `<g class="tsume-gloss"><ellipse cx="27" cy="${(c.L * 0.3).toFixed(1)}" rx="12" ry="${(c.L * 0.2).toFixed(1)}" fill="#FFFFFF" opacity="0.3" filter="url(#${f})" transform="rotate(-14 27 ${(c.L * 0.3).toFixed(1)})"/><path d="M 7 ${(c.L * 0.82).toFixed(1)} Q 4 ${(c.L * 0.5).toFixed(1)} 9 ${(c.L * 0.2).toFixed(1)}" fill="none" stroke="#FFFFFF" stroke-width="2.2" opacity="0.32" filter="url(#${f})"/></g>`;
+    return `<g class="tsume-gloss"><ellipse cx="30" cy="${(c.L * 0.32).toFixed(1)}" rx="10" ry="${(c.L * 0.2).toFixed(1)}" fill="#FFFFFF" opacity="0.3" filter="url(#${f})" transform="rotate(-6 30 ${(c.L * 0.32).toFixed(1)})"/><path d="M 16 ${(c.L * 0.84).toFixed(1)} Q 12 ${(c.L * 0.55).toFixed(1)} 15 ${(c.L * 0.24).toFixed(1)}" fill="none" stroke="#FFFFFF" stroke-width="2.2" opacity="0.32" filter="url(#${f})"/></g>`;
   }
 
   /** spec: {t, over, c, p}; palette: {base,tip,accent,deep,light,metal}; opts: {shape, length, seed} */
@@ -446,7 +472,7 @@
     const col = (role) => { const r = roles[role] || role; return (typeof r === 'string' && r[0] === '#') ? r : palette[r] || palette[role] || '#CCCCCC'; };
     const ctx = { L, col, rng, id, p: spec.p || {}, defs: [], out: [], matte: false };
     // nail bed
-    if (!opts.print) ctx.out.push(`<rect x="-2" y="-2" width="104" height="${L + 20}" fill="#F0D2C6"/><path d="${tipRegion(L * 0.26)}" fill="#F7EAE3" opacity="0.9"/><ellipse cx="50" cy="${L - 6}" rx="22" ry="12" fill="#F8ECE6" opacity="0.7"/>`);
+    if (!opts.print) ctx.out.push(`<rect x="-2" y="-2" width="104" height="${L + 20}" fill="#F0D2C6"/><path d="${tipRegion(Math.max(L * 0.18, L - 118))}" fill="#F7EAE3" opacity="0.9"/><ellipse cx="50" cy="${L - 10}" rx="20" ry="11" fill="#F8ECE6" opacity="0.7"/>`);
     if (spec.over && R[spec.over]) R[spec.over](ctx);
     else if (spec.t && !['one_color', 'sheer', 'peel_one', 'bare_gloss', 'sugar_matte', 'gradient', 'magnet', 'magnet_line', 'velvet', 'magnet_polish', 'mirror', 'tortoise', 'marble', 'nuance', 'cheek', 'tweed', 'aura', 'butterfly', 'gemstone', 'glitter_polish', 'glass_french', 'french', 'skinny_french'].includes(spec.t)) R.sheer(ctx);
     if (spec.t && R[spec.t]) R[spec.t](ctx);
@@ -510,5 +536,5 @@
   }
 
   global.TSUME = global.TSUME || {};
-  Object.assign(global.TSUME, { renderNail, renderFoot, renderChart, renderSwatch, renderShapeIcon, nailPath, FINGER_NAMES, colorUtil: { mix, darken, lighten, rgba, lum, hexToRgb } });
+  Object.assign(global.TSUME, { renderNail, renderFoot, renderChart, renderSwatch, renderShapeIcon, nailPath, nailHalf, NAIL_LEN: LEN, FINGER_NAMES, colorUtil: { mix, darken, lighten, rgba, lum, hexToRgb } });
 })(typeof window !== 'undefined' ? window : globalThis);

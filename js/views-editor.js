@@ -77,8 +77,10 @@
   }
 
   // 爪の中に収める。先端は丸いので、上ほど左右を狭くする
-  function inNail(p) {
-    const y = Math.min(0.9, Math.max(0.14, p.y)), half = y < 0.32 ? 0.12 + (y - 0.14) * 1.2 : 0.34;
+  /** 爪の中に収める（p は 0〜1）。端から 0.06 は空ける。先端は形の幅に合わせて絞る。形・長さを渡さなければ今のデザインの形・長さ */
+  function inNail(p, shape, length) {
+    const sel = (T.app && T.app.state && T.app.state.sel) || {};
+    const y = Math.min(0.9, Math.max(0.06, p.y)), half = Math.max(0.02, T.nailHalf(shape || sel.shape || 'oval', length || sel.length || 'medium', y) - 0.06);
     return { x: Math.min(0.5 + half, Math.max(0.5 - half, p.x)), y };
   }
   /** 落とした位置にパーツを置く（ドラッグ） */
