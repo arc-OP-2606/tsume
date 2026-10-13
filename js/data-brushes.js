@@ -402,5 +402,7 @@
     ['直線を描くコツ（nailnailsnail）', U.straight],
   ];
 
-  T.BRUSHES = { LIST, BY_TECH, ORDER_RULE, RECIPES, SOURCES, FIX, ruleLines };
+  /* 出典は書くがリンクしない店（セリアの規約は商用サイトからのリンクを断る〈2026-10-11 の調査〉。ダイソーもそろえる） */
+  const NOLINK = /^https:\/\/([\w-]+\.)*(seria-group\.com|daisonet\.com)\//;
+  T.BRUSHES = { LIST, BY_TECH, ORDER_RULE, RECIPES, SOURCES, FIX, ruleLines, NOLINK };
 })(typeof window !== 'undefined' ? window : globalThis);

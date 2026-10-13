@@ -124,7 +124,7 @@
     op = op || '';
     const techs = techsWith(b.id).map(t => `<span class="tool-chip">${esc(T.TECHNIQUES[t].name)}</span>`).join('');
     const recs = recipesWith(b.id).map(r => `<button class="pill" data-act="rc-open" data-id="${esc(r.id)}">${esc(r.name)}</button>`).join('');
-    const src = (b.src || []).filter(u => /^https:\/\//.test(u)).map(u => { const s = B.SOURCES.find(x => x[1] === u); return `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(s ? s[0] : u.replace(/^https:\/\/(www\.)?/, '').split('/')[0])}</a></li>`; }).join('');
+    const src = (b.src || []).filter(u => /^https:\/\//.test(u)).map(u => { const s = B.SOURCES.find(x => x[1] === u); const t = esc(s ? s[0] : u.replace(/^https:\/\/(www\.)?/, '').split('/')[0]); return B.NOLINK.test(u) ? `<li>${t}</li>` : `<li><a href="${esc(u)}" target="_blank" rel="noopener">${t}</a></li>`; }).join('');
     return `<div class="sheet-back${op}" data-act="sheet-close" aria-hidden="true"></div>
       <section class="sheet br-sheet${op}" role="dialog" aria-modal="true" aria-label="${esc(b.name)}">
         <header class="sheet-head"><b>${esc(b.name)}</b><button class="iconbtn" data-act="sheet-close" aria-label="閉じる">${ICON.close}</button></header>
@@ -164,7 +164,7 @@
         <span class="rc-card-body"><b>${esc(r.name)}</b><span class="rc-lead">${esc(r.lead || '')}</span><span class="rc-meta">${esc(levelName(r.level))} ・ 約${r.minutes}分 ・ ${r.steps.length}手順</span><span class="rc-brushes">${r.brushes.map(id => esc((brushOf(id) || {}).name || '')).filter(Boolean).join('・')}</span></span>
         ${ICON.chev}
       </button>`).join('');
-    const src = B.SOURCES.map(([t, u]) => `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`).join('');
+    const src = B.SOURCES.map(([t, u]) => (B.NOLINK.test(u) ? `<li>${esc(t)}</li>` : `<li><a href="${esc(u)}" target="_blank" rel="noopener">${esc(t)}</a></li>`)).join('');
     return `${U.bar({ back: true, title: '描き方レシピ' })}
       <p class="small muted">お手本の絵が、1手順ずつ描き足されていきます。使う筆を押すと、筆の説明が出ます。</p>
       ${resumeHtml(st)}
