@@ -8,7 +8,7 @@
     { view: 'kotoba', icon: 'sparkle', name: 'ことばで咲く', note: '一行の言葉から、その色で作れる3案' },
     { view: 'mix', icon: 'drop', name: '色を混ぜて作る', note: '持っている色で、作りたい色の混ぜ方' },
     { view: 'stickers', icon: 'wand', name: 'シール工房', note: '自分のシールをデザインして、家で印刷' },
-    { view: 'draw', icon: 'wand', name: '描く', note: '爪に描いて、描いた順から作り方を出す' },
+    { view: 'draw', icon: 'wand', name: 'わたしの爪アトリエ', note: '大きな爪に指やペンで描き、パーツも置いて、指にのせる' },
     { view: 'recipes', icon: 'list', name: '描き方レシピ', note: 'お花・バラ・ワンコなどを、筆と順番つきで' },
     { view: 'brushes', icon: 'book', name: '筆の図鑑', note: 'どの筆で、何が描けるか', go: st => { st.matTab = 'brushes'; T.app.go('materials'); } },
     { view: 'gallery', icon: 'heart', name: 'みんなのデザイン', note: '作り方つきのデザインを見て、試着する' },

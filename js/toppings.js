@@ -81,7 +81,9 @@
       if (custom && custom[side]) { specs.forEach((f, i) => { specs[i] = Object.assign({}, specs[i], { toppings: clone(custom[side][i] || []) }); }); return; }
       plan(specs, design.palette, { level, mood, scene: sel.scene, accent: side === 'foot' ? 0 : accent, onlyAccent: sel.scope === 'accent' || side === 'foot' }).forEach((f, i) => { specs[i] = f; });
     });
-    design.topping = { level, note: capNote(sel), custom: !!custom };
+    const art = custom && custom.art;
+    if (art) (design.foot ? ['foot'] : ['left', 'right']).forEach(side => { if (Array.isArray(art[side])) design[side].forEach((f, i) => { if (art[side][i]) design[side][i] = Object.assign({}, f, { art: art[side][i] }); }); });
+    design.topping = { level, note: capNote(sel), custom: !!(custom && (custom.left || custom.right || custom.foot || custom.paint)) };
   }
   const specsOf = d => (d.foot ? d.foot : d.left.concat(d.right));
   // 同じ種類・色・形は1袋として数える

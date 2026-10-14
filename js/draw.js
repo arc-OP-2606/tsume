@@ -68,10 +68,13 @@
   function readAll(raw) { try { const v = JSON.parse(raw === undefined ? rawAll() : raw); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
   function writeAll(arr) {
     if (!hasStore()) return false;
-    let a = arr.slice(0, MAX_SAVED);
-    // 入りきらないときは、古い絵から外して入れ直す
+    // 多すぎる・入りきらないときは、古い絵から外す。指にのせている絵（T.draw.pinned）は最後まで残す
+    let pin = new Set(); try { pin = T.draw && typeof T.draw.pinned === 'function' ? T.draw.pinned() : pin; } catch (e) { pin = new Set(); }
+    const drop = a => { let i = a.length - 1; while (i > 0 && pin.has(a[i].id)) i--; return a.filter((_, j) => j !== i); };
+    let a = arr.slice();
+    while (a.length > MAX_SAVED) a = drop(a);
     for (;;) {
-      try { localStorage.setItem(KEY, JSON.stringify(a)); return true; } catch (e) { if (a.length <= 1) return false; a = a.slice(0, -1); }
+      try { localStorage.setItem(KEY, JSON.stringify(a)); return true; } catch (e) { if (a.length <= 1) return false; a = drop(a); }
     }
   }
   // 画面は1本描くたびに描き直すので、保存の中身が変わっていなければ前の掃除の結果を使う（20枚×6000点でも重くしない）
@@ -96,6 +99,17 @@
   }
   // 開いた絵は書き換えるので、一覧とは別の物を返す
   const get = id => { const x = list().find(v => v.id === id); return x ? clean(x) : null; };
+  /** 爪にのせる絵の層（地色と線）。id の絵が無ければ ''。一覧が変わるまで同じ物を返す */
+  const layers = new Map(); let layersRaw = null;
+  function artLayer(id, L) {
+    const raw = rawAll(); if (raw !== layersRaw) { layers.clear(); layersRaw = raw; }
+    const k = id + ':' + L;
+    if (!layers.has(k)) {
+      const x = list().find(v => v.id === id);
+      layers.set(k, x ? `<g class="tsume-art">${x.bg ? `<rect x="-2" y="-2" width="104" height="${L + 20}" fill="${x.bg}"/>` : ''}${x.strokes.map(s => strokeSvg(s, L)).join('')}</g>` : '');
+    }
+    return layers.get(k);
+  }
 
   // ---- 色の名前（絵が持つ名前 → よく使う色 → 持っている色 → 近い色の名前 → 色の番号）
   function nameOf(d, hex) {
@@ -290,5 +304,5 @@
   /** 白に近い線があるか（家庭用のプリンターでは白が刷れない） */
   const hasWhite = drawing => { const d = clean(drawing); return !!d && d.strokes.some(s => lumOf(s.c) > 0.9); };
 
-  T.draw = { KEY, MAX_SAVED, COLORS, TOOLS, FINGERS, KIND_NAME, blank, clean, list, save, remove, get, nameOf, brushFor, stepsFrom, lengthOf, pathOf, widthAt, strokeSvg, svg, toSticker, nailWidthMm, hasWhite };
+  T.draw = { KEY, MAX_SAVED, COLORS, TOOLS, FINGERS, KIND_NAME, blank, clean, list, save, remove, get, nameOf, brushFor, stepsFrom, lengthOf, pathOf, widthAt, strokeSvg, svg, toSticker, nailWidthMm, hasWhite, artLayer };
 })(typeof window !== 'undefined' ? window : globalThis);

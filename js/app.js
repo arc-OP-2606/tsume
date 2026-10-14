@@ -87,6 +87,11 @@
         ['left', 'right', 'foot'].forEach(side => { if (Array.isArray(c.paint[side]) && c.paint[side].length === 5) paint[side] = c.paint[side].map(cleanPaint); });
         if (Object.keys(paint).length) sides.paint = paint;
       }
+      if (c.art && typeof c.art === 'object') { /* アトリエで描いた絵（tsume.drawings.v1 の id）を指ごとに */
+        const art = {}, ok = v => (typeof v === 'string' && /^[\w-]{1,40}$/.test(v) ? v : null);
+        ['left', 'right', 'foot'].forEach(side => { if (Array.isArray(c.art[side]) && c.art[side].length === 5 && c.art[side].some(ok)) art[side] = c.art[side].map(ok); });
+        if (Object.keys(art).length) sides.art = art;
+      }
       if (Object.keys(sides).length) out[key] = sides;
     });
     return out;

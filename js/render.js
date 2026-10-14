@@ -483,6 +483,8 @@
       R[layer.t](lctx);
       if (lctx.matte) ctx.matte = true;
     });
+    if (spec.artLayer) ctx.out.push(spec.artLayer); /* アトリエの描きかけ（保存前） */
+    else if (spec.art && global.TSUME.draw && global.TSUME.draw.artLayer) ctx.out.push(global.TSUME.draw.artLayer(spec.art, L));
     if (!ctx.matte && !ctx.p.matte && !opts.print) ctx.out.push(gloss(ctx));
     // なぞったときに爪の上を横切る光の帯（.stage.touching のときだけ見える。マットは光らない）
     if (!ctx.matte && !ctx.p.matte && !opts.print) ctx.out.push(`<polygon class="tsume-sheen" points="-34,0 -10,0 -46,${L} -70,${L}" fill="#FFFFFF"/>`);

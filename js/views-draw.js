@@ -1,5 +1,6 @@
-/* tsumé — 描くモード（画面）。大きな1本の爪に、指やタッチペンで描く。
-   描いた線は SVG で見せ、描いている途中の1本だけ canvas に描く。手順・シール・保存は js/draw.js（T.draw） */
+/* tsumé — わたしの爪アトリエ（画面 'draw'）。大きな1本の爪に、指やタッチペンで描き、パーツを置き、デザインの指にのせる。
+   描いた線は SVG で見せ、描いている途中の1本だけ canvas に描く。手順・シール・保存は js/draw.js（T.draw）、指にのせるのは js/atelier.js。
+   スマホ向け（指）とタブレット向け（ペン）で、線のならし方・太さ・手のひらの扱い・道具の並べ方を変える */
 (function (global) {
   'use strict';
   const T = global.TSUME, U = T.ui, D = T.draw;
@@ -10,6 +11,22 @@
   const MAX_STROKES = 300, MAX_TOTAL = 6000, MAX_PTS = 800;
   const FINGER_SHORT = ['親指', '人差し', '中指', '薬指', '小指'];
   const SIZES = [{ id: '0', name: '細' }, { id: '1', name: '中' }, { id: '2', name: '太' }];
+  const SIZES_TAB = [{ id: 'x', name: '極細' }].concat(SIZES);
+  const ZOOMS = [1, 2, 4];
+  // 線のならし: 新しい点へ寄せる割合（小さいほど強くならす）。指はぶれるので強め、ペンはほぼそのまま
+  const SMOOTH = { phone: 0.45, tablet: 0.85 };
+  // スマホ向けかタブレット向けか。自分で選んだもの → 無ければ画面の短い辺が 700px 以上かペンを使ったらタブレット向け
+  const DEV_KEY = 'tsume.atelier.device.v1';
+  function devPref() { try { const v = localStorage.getItem(DEV_KEY); return v === 'phone' || v === 'tablet' ? v : null; } catch (e) { return null; } }
+  function device(st) {
+    const w = st.dw, pref = devPref(); if (pref) return pref;
+    if (w && w.penSeen) return 'tablet';
+    return hasDOM && Math.min(window.innerWidth || 0, window.innerHeight || 0) >= 700 ? 'tablet' : 'phone';
+  }
+  /** 太さ（'x' は極細＝細の半分） */
+  const widthOf = (tool, size) => (size === 'x' ? Math.max(0.5, tool.sizes[0] / 2) : tool.sizes[size] || tool.sizes[1]);
+  /** ペンだけで描くか（タブレット向けは最初から。自分で切り替えたらそれ） */
+  const penOnly = (st, w) => (typeof w.penOnly === 'boolean' ? w.penOnly : device(st) === 'tablet');
   const svg = (d, fill) => `<svg viewBox="0 0 24 24" fill="${fill || 'none'}" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const IC = {
     liner: svg('<path d="M4 20c3-1 5-4 8-8s6-7 8-8"/>'),
@@ -32,14 +49,14 @@
     return D.blank({ shape: sel.shape, length: sel.length, bg, names: bg ? { [bg]: bgName } : {} });
   }
   function dws(st) {
-    if (!st.dw || !st.dw.d) st.dw = { tool: 'liner', size: 1, color: '#1E1A1C', undo: [], redo: [], dirty: false, d: fresh(st) };
+    if (!st.dw || !st.dw.d) st.dw = { tool: 'liner', size: device(st) === 'phone' ? 2 : 1, color: '#1E1A1C', undo: [], redo: [], hist: [], pLen: null, mode: 'draw', zoom: { k: 1, x: 0, y: 0 }, dirty: false, d: fresh(st) };
     return st.dw;
   }
   const total = d => d.strokes.reduce((n, s) => n + s.pts.length, 0);
   function commit(st, fn) {
     const w = dws(st), d = w.d;
     w.undo.push({ bg: d.bg, strokes: d.strokes }); if (w.undo.length > 100) w.undo.shift();
-    w.redo = []; fn(d); w.dirty = true; w.added = null; w.confirm = null;
+    w.redo = []; fn(d); w.dirty = true; w.added = null; w.confirm = null; w.hist.push('d');
   }
   /** 描いた1本を足す（画面の外からも呼べる。検査でも使う） */
   function addStroke(st, s) {
@@ -69,7 +86,22 @@
     if (w.confirm === key) { w.confirm = null; return true; }
     w.confirm = key; T.app.toast(msg); return false;
   }
-  function reset(st, d) { const w = dws(st); stopPlay(true); w.d = d; w.undo = []; w.redo = []; w.dirty = false; w.added = null; w.confirm = null; w.confirmDel = null; }
+  function reset(st, d) { const w = dws(st); stopPlay(true); w.d = d; w.undo = []; w.redo = []; w.hist = []; w.pLen = null; w.zoom = { k: 1, x: 0, y: 0 }; w.dirty = false; w.added = null; w.confirm = null; w.confirmDel = null; }
+  // ---- パーツ（エディタの仕組みをそのまま使う。指と手はアトリエに合わせる）
+  const sideOf = (st, w) => { const d = st.current && U.designFor(st.current.conceptId, st.current.paletteIndex); return !d ? null : d.foot ? 'foot' : (w.side || st.editor.side !== 'foot' && st.editor.side || U.showcaseSide(st.sel)); };
+  function syncEditor(st, w) {
+    const side = sideOf(st, w); if (!side) return false;
+    const e = st.editor;
+    if (e.side !== side || e.finger !== w.d.finger) { e.side = side; e.finger = w.d.finger; e.selected = null; e.layout = null; }
+    return true;
+  }
+  // パーツの「元に戻す」が増えた分を、アトリエの取り消しの順番（w.hist）に入れる
+  function syncHist(st, w) {
+    const u = st.editor.undo, n = u && st.current && u.key === U.customKey(st.current.conceptId, st.current.paletteIndex) ? u.stack.length : 0;
+    if (w.pLen != null && n > w.pLen) for (let i = w.pLen; i < n; i++) w.hist.push('p');
+    if (w.pLen != null && n < w.pLen) { let k = w.pLen - n; for (let i = w.hist.length - 1; i >= 0 && k > 0; i--) if (w.hist[i] === 'p') { w.hist.splice(i, 1); k--; } }
+    w.pLen = n;
+  }
 
   // ---- 画面
   const dot = (hex, cls) => `<i class="dw-dot${cls ? ' ' + cls : ''}" style="background:${HEX.test(hex || '') ? hex : 'transparent'}"></i>`;
@@ -112,36 +144,73 @@
     const a = w.added; if (!a) return '';
     return `<p class="dw-note">${ICON.check}<span>${a.ok ? `シール工房のシートに${a.n}枚足しました。` : 'シートに足しましたが、この環境では保存できません。'}${a.over ? `${a.over}枚が紙からはみ出しています。シール工房で数を減らすか、紙を大きくしてください。` : ''}${a.white ? '白い線は、家庭用のプリンターでは刷れません（白インクが無いため）。' : ''}</span><button class="link" data-act="nav" data-view="stickers">シール工房を開く${ICON.chev}</button></p>`;
   }
+  const zoomStyle = z => (z && z.k > 1 ? ` style="transform:translate(${z.x.toFixed(1)}px,${z.y.toFixed(1)}px) scale(${z.k})"` : '');
+  function attachBlock(st, w) {
+    if (!st.current) return '<p class="small muted at-note">デザインを選んでから開くと、描いた爪をそのデザインの指にのせられます（パーツも置けます）。</p>';
+    const side = sideOf(st, w), on = T.atelier && T.atelier.artOf(st, side, w.d.finger);
+    const hand = side === 'left' ? '左手' : side === 'right' ? '右手' : '足';
+    return `<div class="at-attach"><button class="btn rose block" data-act="at-attach">${ICON.check}${esc(hand)}の${esc(D.FINGERS[w.d.finger])}にのせる</button>${on ? `<button class="link" data-act="at-detach">この指から絵を外す</button>` : ''}</div>`;
+  }
+  function partsBlock(st, w) {
+    if (!st.current || !syncEditor(st, w)) return { stage: `<div class="dw-stage at-empty" style="aspect-ratio:112/${D.lengthOf(w.d) + 12}">${D.svg(w.d, { cls: 'dw-nail', label: '' })}</div>`, side: '<p class="small muted">パーツは、デザインを選んでから置けます。提案や「マイデザイン」から開いてください。</p>' };
+    const d = U.designFor(st.current.conceptId, st.current.paletteIndex), e = st.editor;
+    const specs = d.foot || (e.side === 'left' ? d.left : d.right);
+    const shape = d.foot ? 'square' : st.sel.shape, length = d.foot ? 'short' : st.sel.length, L = T.nailPath(shape, length).L;
+    const art = `<g class="tsume-art">${w.d.bg ? `<rect x="-2" y="-2" width="104" height="${L + 20}" fill="${w.d.bg}"/>` : ''}${w.d.strokes.map(x => D.strokeSvg(x, L)).join('')}</g>`;
+    const s = T.editor.stage(st, { d, specs, shape, length, seedBase: 11 + (e.side === 'left' ? 100 : 0), artLayer: art });
+    return { stage: `<div class="ed-stage at-ed">${s.nail}${s.tool}</div>`, side: `${s.ranges}${T.shop.tray(st)}` };
+  }
   T.views.draw = st => {
-    const w = dws(st), d = w.d, L = D.lengthOf(d), tool = w.tool;
+    const w = dws(st), d = w.d, L = D.lengthOf(d), tool = w.tool, dev = device(st), parts = w.mode === 'parts';
     const can = !hasDOM || typeof window.PointerEvent !== 'undefined';
     const any = d.strokes.length > 0;
+    if (parts && st.current) syncHist(st, w); else if (st.current && w.pLen == null) syncHist(st, w);
+    if (dev === 'phone' && w.size === 'x') w.size = 0;
     const sizes = tool === 'bg' ? '<p class="small muted dw-bg-help">下の色を選ぶと、爪全体の色が変わります。</p>'
-      : `<div class="dw-row"><span class="lab">太さ</span>${U.seg(SIZES, 'dw-size', String(w.size), 'aria-label="太さ"')}</div>`;
-    return `${U.bar({ back: true, title: '描く', right: `<button class="btn sm" data-act="dw-save" ${any || d.bg ? '' : 'disabled'}>保存</button>` })}
-      <section class="dw">
-        <p class="dw-lead">指やタッチペンで、爪に描けます。</p>
-        ${U.seg(FINGER_SHORT.map((n, i) => ({ id: String(i), name: n })), 'dw-finger', String(d.finger), 'aria-label="指を選ぶ"')}
-        <div class="dw-stage${w.playing ? ' playing' : ''}" style="aspect-ratio:112/${L + 12}">
+      : `<div class="dw-row"><span class="lab">太さ</span>${U.seg(dev === 'tablet' ? SIZES_TAB : SIZES, 'dw-size', String(w.size), 'aria-label="太さ"')}</div>`;
+    const P = parts ? partsBlock(st, w) : null;
+    const stage = parts ? P.stage : `<div class="dw-stage${w.playing ? ' playing' : ''}" style="aspect-ratio:112/${L + 12}">
           ${D.svg(d, { cls: 'dw-nail', linesCls: 'dw-lines', label: `${D.FINGERS[d.finger]}の爪` })}
           <canvas id="dw-canvas" class="dw-canvas" aria-label="${esc(D.FINGERS[d.finger])}の爪。ここに描く"></canvas>
-        </div>
-        ${can ? '' : '<p class="dw-warn">このブラウザでは描けません。新しいブラウザで開いてください。</p>'}
-        ${w.penSeen ? `<div class="dw-penrow"><button class="chip" data-act="dw-pen" aria-pressed="${!!w.penOnly}">ペンだけで描く（手のひらは無視）</button></div>` : ''}
-        <div class="dw-edit" role="toolbar" aria-label="描いた線">
-          <button class="dw-ed" data-act="dw-undo" ${w.undo.length && !w.playing ? '' : 'disabled'}>${IC.undo}<span>戻す</span></button>
-          <button class="dw-ed" data-act="dw-redo" ${w.redo.length && !w.playing ? '' : 'disabled'}>${IC.redo}<span>やり直す</span></button>
-          <button class="dw-ed" data-act="dw-clear" ${any && !w.playing ? '' : 'disabled'}>${ICON.trash}<span>全部消す</span></button>
-          <button class="dw-ed" data-act="dw-play" ${any ? '' : 'disabled'}>${w.playing ? IC.stop : ICON.play}<span>${w.playing ? '止める' : '再生'}</span></button>
-        </div>
+        </div>`;
+    const undoOk = w.hist.length && !w.playing;
+    const drawTools = `
         <div class="dw-tools" role="group" aria-label="道具">${['liner', 'brush', 'dot', 'bg'].map(k => `<button class="dw-tool" data-act="dw-tool" data-v="${k}" aria-pressed="${tool === k}">${IC[k]}<span>${esc(D.TOOLS[k].name)}</span></button>`).join('')}</div>
         ${sizes}
-        ${colorsBlock(st, w)}
-        <div class="dw-acts">
-          <button class="btn rose" data-act="dw-steps">${ICON.list}作り方を出す</button>
-          <button class="btn ghost" data-act="dw-sticker" ${any ? '' : 'disabled'}>${ICON.wand}シールにする</button>
+        ${colorsBlock(st, w)}`;
+    return `${U.bar({ back: true, title: 'わたしの爪アトリエ', right: `<button class="btn sm" data-act="dw-save" ${any || d.bg ? '' : 'disabled'}>保存</button>` })}
+      <section class="dw at at-${dev}">
+        <div class="at-top">
+          ${U.seg([{ id: 'draw', name: '描く' }, { id: 'parts', name: 'パーツ' }], 'at-mode', parts ? 'parts' : 'draw', 'aria-label="描く・パーツ"')}
+          ${U.seg([{ id: 'phone', name: 'スマホ向け' }, { id: 'tablet', name: 'タブレット向け' }], 'at-dev', dev, 'aria-label="画面の向き"')}
         </div>
-        ${noteBlock(w)}
+        ${U.seg(FINGER_SHORT.map((n, i) => ({ id: String(i), name: n })), 'dw-finger', String(d.finger), 'aria-label="指を選ぶ"')}
+        <div class="at-main">
+          <div class="at-left">
+            <div class="at-view${w.zoom.k > 1 ? ' zoomed' : ''}" data-at-view>
+              <div class="at-zoom"${zoomStyle(w.zoom)}>${stage}</div>
+              <i class="at-hover" aria-hidden="true"></i>
+            </div>
+            <div class="at-zoombar" role="group" aria-label="拡大">${ZOOMS.map(k => `<button class="chip" data-act="at-zoom" data-v="${k}" aria-pressed="${w.zoom.k === k}">${k}×</button>`).join('')}<span class="small muted">2本指でも拡大・移動</span></div>
+            ${can ? '' : '<p class="dw-warn">このブラウザでは描けません。新しいブラウザで開いてください。</p>'}
+          </div>
+          <div class="at-right">
+            ${!parts && (w.penSeen || dev === 'tablet') ? `<div class="dw-penrow"><button class="chip" data-act="dw-pen" aria-pressed="${penOnly(st, w)}">ペンだけで描く（手のひらは無視）</button></div>` : ''}
+            <div class="dw-edit" role="toolbar" aria-label="描いた線とパーツ">
+              <button class="dw-ed" data-act="dw-undo" ${undoOk ? '' : 'disabled'}>${IC.undo}<span>戻す</span></button>
+              <button class="dw-ed" data-act="dw-redo" ${w.redo.length && !w.playing && !parts ? '' : 'disabled'}>${IC.redo}<span>やり直す</span></button>
+              <button class="dw-ed" data-act="dw-clear" ${any && !w.playing && !parts ? '' : 'disabled'}>${ICON.trash}<span>線を全部消す</span></button>
+              <button class="dw-ed" data-act="dw-play" ${any && !parts ? '' : 'disabled'}>${w.playing ? IC.stop : ICON.play}<span>${w.playing ? '止める' : '再生'}</span></button>
+            </div>
+            ${parts ? P.side : drawTools}
+            ${attachBlock(st, w)}
+            <div class="dw-acts">
+              <button class="btn ghost" data-act="dw-steps">${ICON.list}作り方を出す</button>
+              <button class="btn ghost" data-act="dw-sticker" ${any ? '' : 'disabled'}>${ICON.wand}シールにする</button>
+            </div>
+            ${noteBlock(w)}
+          </div>
+        </div>
         ${savedBlock(st, w)}
         <p class="small muted">描いた絵は、この端末の中だけに保存します（どこにも送りません）。</p>
       </section>`;
@@ -201,11 +270,17 @@
     const g = ctxOf(cv, d); if (!g) return;
     paintSeg(g, cur.s, D.lengthOf(d), i); g.restore();
   }
+  /** ペンの傾き 0（立てる）〜1（寝かせる）。寝かせるほど線を太く */
+  function tiltOf(ev) {
+    if (typeof ev.altitudeAngle === 'number' && ev.altitudeAngle > 0) return Math.max(0, Math.min(1, 1 - ev.altitudeAngle / (Math.PI / 2)));
+    const t = Math.max(Math.abs(ev.tiltX || 0), Math.abs(ev.tiltY || 0));
+    return Math.max(0, Math.min(1, t / 90));
+  }
   function pointOf(ev, cv, L) {
     const r = cv.getBoundingClientRect(); if (!r.width || !r.height) return null;
     const ux = -6 + ((ev.clientX - r.left) / r.width) * 112, uy = -6 + ((ev.clientY - r.top) / r.height) * (L + 12);
     const q = [Math.round(Math.max(0, Math.min(100, ux)) * 10) / 10, Math.round(Math.max(0, Math.min(100, (uy / L) * 100)) * 10) / 10];
-    if (ev.pointerType === 'pen' && typeof ev.pressure === 'number' && ev.pressure > 0) q.push(Math.round(ev.pressure * 100) / 100);
+    if (ev.pointerType === 'pen' && typeof ev.pressure === 'number' && ev.pressure > 0) q.push(Math.round(Math.min(1, ev.pressure * (1 + 0.6 * tiltOf(ev))) * 100) / 100);
     return q;
   }
   function finish() {
@@ -216,8 +291,9 @@
   function down(ev) {
     const st = T.app.state, w = st.dw; if (!w || w.playing) return;
     // タッチペンを一度使ったら、手のひらが触れても描かない（「ペンだけで描く」を外すと、指でも描ける）
-    if (ev.pointerType === 'pen') { if (!w.penSeen) { w.penSeen = true; w.penOnly = true; } }
-    else if (w.penOnly && ev.pointerType === 'touch') {
+    if (pinch || touches.size > 1) return; // 2本指で拡大・移動している間は描かない
+    if (ev.pointerType === 'pen') { if (!w.penSeen) { w.penSeen = true; if (typeof w.penOnly !== 'boolean') w.penOnly = true; } }
+    else if (penOnly(st, w) && ev.pointerType === 'touch') {
       if (!w.penTold) { w.penTold = true; T.app.toast('いまはペンだけで描きます。指で描くときは「ペンだけで描く」を外してください'); }
       return;
     }
@@ -230,18 +306,32 @@
     const q = pointOf(ev, cv, L); if (!q) return;
     try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* 古いブラウザ */ }
     const tool = D.TOOLS[w.tool];
-    cur = { id: ev.pointerId, cv, s: { t: w.tool, c: w.color, w: tool.sizes[w.size] || tool.sizes[1], pts: [q] } };
+    cur = { id: ev.pointerId, cv, a: SMOOTH[device(st)], s: { t: w.tool, c: w.color, w: widthOf(tool, w.size), pts: [q] } };
+    hover(null);
     paintLive(0);
   }
+  // ペンが触れずに近いとき、筆の大きさの丸を出す（タブレット向け・ホバーに対応する端末だけ）
+  function hover(ev) {
+    const el = hasDOM && document.querySelector('.at-hover'); if (!el) return;
+    const st = T.app.state, w = st.dw;
+    if (!ev || !w || ev.pointerType !== 'pen' || ev.buttons || device(st) !== 'tablet' || w.tool === 'bg') { el.classList.remove('on'); return; }
+    const view = el.parentElement.getBoundingClientRect(), cv = ev.currentTarget.getBoundingClientRect(), px = (widthOf(D.TOOLS[w.tool], w.size) * cv.width) / 112;
+    el.style.width = el.style.height = Math.max(4, px) + 'px';
+    el.style.left = (ev.clientX - view.left) + 'px'; el.style.top = (ev.clientY - view.top) + 'px';
+    el.classList.add('on');
+  }
   function move(ev) {
-    if (!cur || ev.pointerId !== cur.id || cur.s.t === 'dot') return;
+    if (!cur) { hover(ev); return; }
+    if (ev.pointerId !== cur.id || cur.s.t === 'dot') return;
     ev.preventDefault();
     const d = dws(T.app.state).d, L = D.lengthOf(d), pts = cur.s.pts;
     const evs = typeof ev.getCoalescedEvents === 'function' ? ev.getCoalescedEvents() : null;
     for (const e of (evs && evs.length ? evs : [ev])) {
       if (pts.length >= MAX_PTS) break;
-      const q = pointOf(e, cur.cv, L), l = pts[pts.length - 1];
-      if (!q || Math.hypot(q[0] - l[0], ((q[1] - l[1]) * L) / 100) < 0.7) continue;
+      const q0 = pointOf(e, cur.cv, L), l = pts[pts.length - 1];
+      if (!q0) continue;
+      const q = [Math.round((l[0] + (q0[0] - l[0]) * cur.a) * 10) / 10, Math.round((l[1] + (q0[1] - l[1]) * cur.a) * 10) / 10].concat(q0.slice(2));
+      if (Math.hypot(q[0] - l[0], ((q[1] - l[1]) * L) / 100) < 0.7) continue;
       pts.push(q); paintLive(pts.length - 1);
     }
   }
@@ -255,6 +345,47 @@
     cv.addEventListener('pointerdown', down);
     cv.addEventListener('pointermove', move);
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => cv.addEventListener(t, up));
+    cv.addEventListener('pointerleave', () => hover(null));
+  }
+
+  // ---- 2本指で拡大・移動（描く・パーツの両方。パーツを選んでいるときは、パーツの大きさと向きに使うので触らない）
+  const touches = new Map(); let pinch = null;
+  function clampZoom(z, W, H) { const k = Math.max(1, Math.min(4, z.k)); return { k, x: Math.min(0, Math.max(W - W * k, z.x)), y: Math.min(0, Math.max(H - H * k, z.y)) }; }
+  function applyZoom(view, z) { const el = view.querySelector('.at-zoom'); if (el) el.style.transform = z.k > 1 ? `translate(${z.x.toFixed(1)}px,${z.y.toFixed(1)}px) scale(${z.k})` : ''; view.classList.toggle('zoomed', z.k > 1); }
+  /** 描きかけの線を捨てる（2本目の指が来たとき） */
+  function dropStroke() {
+    if (!cur) return;
+    const cv = cur.cv; cur = null;
+    const g = cv && cv.getContext && cv.getContext('2d'); if (g) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); }
+  }
+  if (hasDOM) {
+    document.addEventListener('pointerdown', e => {
+      const view = e.target.closest && e.target.closest('[data-at-view]'); if (!view || e.pointerType !== 'touch') return;
+      const st = T.app.state, w = st.dw; if (!w) return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.size !== 2) return;
+      if (w.mode === 'parts' && st.editor.selected != null) return;
+      dropStroke();
+      const [a, b] = Array.from(touches.values()), r = view.getBoundingClientRect();
+      pinch = { view, z0: Object.assign({}, w.zoom), d0: Math.hypot(b.x - a.x, b.y - a.y) || 1, c0: { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top }, W: r.width, H: r.height, z: Object.assign({}, w.zoom) };
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+    document.addEventListener('pointermove', e => {
+      if (!touches.has(e.pointerId)) return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (!pinch || touches.size < 2) return;
+      const [a, b] = Array.from(touches.values()), r = pinch.view.getBoundingClientRect(), z0 = pinch.z0;
+      const k = Math.max(1, Math.min(4, z0.k * Math.hypot(b.x - a.x, b.y - a.y) / pinch.d0)), c = { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top };
+      // 2本の指の真ん中にあった所が、指について動く
+      pinch.z = clampZoom({ k, x: c.x - (pinch.c0.x - z0.x) * (k / z0.k), y: c.y - (pinch.c0.y - z0.y) * (k / z0.k) }, pinch.W, pinch.H);
+      applyZoom(pinch.view, pinch.z);
+      e.preventDefault(); e.stopPropagation();
+    }, true);
+    const lift = e => {
+      if (!touches.delete(e.pointerId)) return;
+      if (pinch && touches.size < 2) { const w = T.app.state.dw, z = pinch.z; pinch = null; if (w) { w.zoom = z; setup(); } }
+    };
+    ['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, lift, true));
   }
 
   // ---- 描いた順に再生
@@ -316,23 +447,52 @@
     /** ほかの画面から「描く」を開く。まだ何も描いていなければ、いまのデザインの地色で始める */
     'dw-start': (el, st) => {
       const w = dws(st);
-      if (!w.d.strokes.length && !w.dirty) reset(st, fresh(st));
+      if (!w.d.strokes.length && !w.dirty) {
+        reset(st, fresh(st));
+        // その指にもう絵をのせていれば、その絵を開く（続きから描ける）
+        const id = st.current && T.atelier && T.atelier.artOf(st, sideOf(st, w), w.d.finger), x = id && D.get(id);
+        if (x) reset(st, x);
+      }
       else if (fresh(st).bg !== w.d.bg) { T.app.go('draw'); T.app.toast('描きかけの絵を開きました。この色で描くときは、下の「新しく描く」'); return; }
       T.app.go('draw');
     },
     'dw-finger': (el, st) => { const w = dws(st), i = Number(el.dataset.v); if (Number.isInteger(i) && i >= 0 && i <= 4 && w.d.finger !== i) { w.d.finger = i; if (w.d.strokes.length) w.dirty = true; } T.app.render(); },
-    'dw-pen': (el, st) => { const w = dws(st); w.penOnly = !w.penOnly; w.penTold = false; T.app.toast(w.penOnly ? 'ペンだけで描きます（指や手のひらは無視）' : '指でも描けます'); T.app.render(); },
+    'dw-pen': (el, st) => { const w = dws(st); w.penOnly = !penOnly(st, w); w.penTold = false; T.app.toast(w.penOnly ? 'ペンだけで描きます（指や手のひらは無視）' : '指でも描けます'); T.app.render(); },
+    'at-mode': (el, st) => { const w = dws(st); stopPlay(true); w.mode = el.dataset.v === 'parts' ? 'parts' : 'draw'; if (w.mode === 'parts') st.editor.selected = null; T.app.render(); },
+    'at-dev': (el, st) => { const v = el.dataset.v === 'tablet' ? 'tablet' : 'phone'; try { localStorage.setItem(DEV_KEY, v); } catch (e) { /* 保存できなくても今は切り替える */ } const w = dws(st); delete w.penOnly; if (v === 'phone' && w.size === 'x') w.size = 0; T.app.render(); },
+    'at-zoom': (el, st) => {
+      const w = dws(st), k = ZOOMS.includes(+el.dataset.v) ? +el.dataset.v : 1, view = hasDOM && document.querySelector('[data-at-view]');
+      const W = view ? view.getBoundingClientRect().width : 0, H = view ? view.getBoundingClientRect().height : 0, z0 = w.zoom;
+      w.zoom = k === 1 || !W ? { k, x: 0, y: 0 } : clampZoom({ k, x: W / 2 - (W / 2 - z0.x) * (k / z0.k), y: H / 2 - (H / 2 - z0.y) * (k / z0.k) }, W, H);
+      T.app.render();
+    },
+    'at-attach': (el, st) => {
+      const w = dws(st); if (!st.current) { T.app.toast('デザインを選んでから開くと、指にのせられます'); return; }
+      if (!w.d.strokes.length && !w.d.bg) { T.app.toast('まだ何も描いていません'); return; }
+      const side = sideOf(st, w), saved = T.atelier.attach(st, w.d, side, w.d.finger);
+      if (!saved) { T.app.toast('この環境では保存できません'); return; }
+      w.d = saved; w.dirty = false; w.confirm = null; st.side = side === 'foot' ? st.side : side;
+      T.app.toast(`${D.FINGERS[saved.finger]}にのせました`);
+      T.app.go('detail');
+    },
+    'at-detach': (el, st) => { const w = dws(st); if (T.atelier.detach(st, sideOf(st, w), w.d.finger)) T.app.toast('この指から絵を外しました（絵は「保存した絵」に残っています）'); T.app.render(); },
     'dw-tool': (el, st) => { const w = dws(st); if (D.TOOLS[el.dataset.v]) w.tool = el.dataset.v; T.app.render(); },
-    'dw-size': (el, st) => { dws(st).size = Math.max(0, Math.min(2, Math.round(+el.dataset.v) || 0)); T.app.render(); },
+    'dw-size': (el, st) => { dws(st).size = el.dataset.v === 'x' && device(st) === 'tablet' ? 'x' : Math.max(0, Math.min(2, Math.round(+el.dataset.v) || 0)); T.app.render(); },
     'dw-color': (el, st) => pickColor(st, el.dataset.hex, el.dataset.name),
     'dw-bg-none': (el, st) => { setBg(st, null); T.app.render(); },
+    /** 戻す: 描いた線とパーツの変更を、起きた順に1つずつ戻す */
     'dw-undo': (el, st) => {
-      const w = dws(st), d = w.d; if (!w.undo.length || w.playing) return;
+      const w = dws(st), d = w.d; if (w.playing) return;
+      if (st.current) syncHist(st, w);
+      const last = w.hist[w.hist.length - 1];
+      if (last === 'p') { w.hist.pop(); w.pLen = Math.max(0, (w.pLen || 1) - 1); T.actions['ed-undo'](null, st); return; }
+      if (!w.undo.length) return;
+      if (last === 'd') w.hist.pop();
       w.redo.push({ bg: d.bg, strokes: d.strokes }); const s = w.undo.pop(); d.bg = s.bg; d.strokes = s.strokes; w.dirty = true; w.added = null; T.app.render();
     },
     'dw-redo': (el, st) => {
       const w = dws(st), d = w.d; if (!w.redo.length || w.playing) return;
-      w.undo.push({ bg: d.bg, strokes: d.strokes }); const s = w.redo.pop(); d.bg = s.bg; d.strokes = s.strokes; w.dirty = true; w.added = null; T.app.render();
+      w.undo.push({ bg: d.bg, strokes: d.strokes }); const s = w.redo.pop(); d.bg = s.bg; d.strokes = s.strokes; w.dirty = true; w.added = null; w.hist.push('d'); T.app.render();
     },
     'dw-clear': (el, st) => { const w = dws(st); if (!w.d.strokes.length || w.playing) return; commit(st, d => { d.strokes = []; }); T.app.render(); T.app.toast('線を全部消しました（「戻す」で戻せます）'); },
     'dw-play': (el, st) => play(st),
@@ -375,5 +535,5 @@
       w.confirmDel = null; T.app.toast(D.remove(id) ? '消しました' : '消せませんでした'); T.app.render();
     },
   });
-  T.drawView = { addStroke, state: dws, stepsSheet };
+  T.drawView = { addStroke, state: dws, stepsSheet, device, widthOf, clampZoom };
 })(typeof window !== 'undefined' ? window : globalThis);

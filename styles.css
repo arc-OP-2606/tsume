@@ -1144,3 +1144,28 @@ body.myhand-open { overflow: hidden; }
 .myhand .mh-foot { position: absolute; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); display: flex; gap: 10px; justify-content: center; }
 .myhand-link { margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) { .myhand .mh-nail.keep { animation: none; } }
+
+/* ---- わたしの爪アトリエ（画面 draw）。スマホ向け: 大きな爪の下に道具。タブレット向け: 左に爪、右に道具 */
+.at-top { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; }
+.at-top .seg { flex: 1 1 200px; }
+.at-main { display: flex; flex-direction: column; gap: 14px; }
+.at-left, .at-right { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.at-view { position: relative; overflow: hidden; border-radius: 24px; background: var(--bg2); touch-action: none; }
+.at-zoom { transform-origin: 0 0; display: flex; justify-content: center; padding: 8px 0; }
+.at .dw-stage { width: auto; min-width: 0; height: min(62vh, 560px); max-width: 100%; margin: 0 auto; }
+.at .ed-stage.at-ed { width: 100%; padding: 4px 0 52px; background: none; border-radius: 0; }
+.at .ed-stage.at-ed .ed-nail { height: min(58vh, 520px); width: auto; max-width: 100%; }
+.at-hover { position: absolute; display: none; border: 1.5px solid rgba(40, 20, 25, 0.55); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.at-hover.on { display: block; }
+.at-zoombar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; }
+.at-zoombar .chip { min-width: 52px; justify-content: center; }
+.at-attach { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.at-attach .btn { gap: 6px; }
+.at-attach .link { color: var(--rose-strong); font-size: 13px; }
+.at-note { padding: 10px 12px; border-radius: 14px; background: var(--bg2); }
+.app:has(.at-tablet) { max-width: min(1180px, 100%); }
+.at-tablet .at-main { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr); align-items: start; gap: 18px; }
+.at-tablet .at-left { position: sticky; top: 8px; }
+.at-tablet .dw-stage { height: min(76vh, 900px); }
+.at-tablet .ed-stage.at-ed .ed-nail { height: min(72vh, 860px); }
+.at-tablet .dw-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }

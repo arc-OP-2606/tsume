@@ -125,6 +125,19 @@
     return false;
   }
 
+  /** 爪の舞台（エディタとアトリエで共有）。o: { d, specs, shape, length, seedBase, artLayer（描きかけの絵の SVG） } */
+  function stage(st, o) {
+    const e = st.editor, { d, specs, shape, length, seedBase } = o;
+    const spec = o.artLayer != null ? Object.assign({}, specs[e.finger], { art: null, artLayer: o.artLayer }) : specs[e.finger], { L } = T.nailPath(shape, length), list = spec.toppings || [];
+    let ring = '';
+    if (e.selected != null && list[e.selected]) { const t = list[e.selected], r = unitOf(t) * scaleOf(t) * 1.3 + 4; ring = `<circle class="ed-ring" cx="${(t.x * 100).toFixed(1)}" cy="${(t.y * L).toFixed(1)}" r="${r.toFixed(1)}"/>`; }
+    const nail = `<svg class="ed-nail" viewBox="-34 -26 168 ${L + 52}" data-l="${L}" role="img" aria-label="${esc(T.FINGER_NAMES[e.finger])}の爪">${T.renderNail(spec, d.palette, { shape, length, seed: seedBase, finger: e.finger })}${ring}</svg>`;
+    const sel = e.selected != null && list[e.selected] ? list[e.selected] : null;
+    const tool = sel ? `<div class="ed-tool" role="toolbar" aria-label="選んだパーツ"><button data-act="ed-smaller" aria-label="小さく">${ICON.minus}</button><button data-act="ed-bigger" aria-label="大きく">${ICON.plus}</button><button data-act="ed-rotate" aria-label="回す">${ICON.rotate}</button><button data-act="ed-front" aria-label="前へ（上に重ねる）">${ICON.up || '↑'}</button><button data-act="ed-back" aria-label="後ろへ（下に重ねる）">${ICON.down || '↓'}</button><button data-act="ed-remove" aria-label="外す">${ICON.trash}</button></div>` : `<div class="hint">${ICON.hand}<span>${list.length ? 'ドラッグで動かす・タップで選ぶ・2本指で大きさと向き' : '下のパーツを選ぶか、爪をタップして置く'}</span></div>`;
+    const corner = `<div class="ed-corner"><button class="iconbtn" data-act="ed-undo" aria-label="元に戻す" ${e.undo && e.undo.key === keyOf(st) && e.undo.stack.length ? '' : 'disabled'}>${ICON.undo || ICON.refresh}</button><button class="iconbtn" data-act="ed-zoom" aria-pressed="${!!e.zoom}" aria-label="${e.zoom ? '元の大きさで見る' : '大きく見る'}">${ICON.zoom || ICON.plus}</button></div>`;
+    const ranges = sel ? `<div class="ed-ranges"><button class="btn ghost sm ed-dup" data-act="ed-dup">${ICON.plus}同じパーツをもう1つ</button><label><span>大きさ</span><input type="range" data-ed-range="z" min="50" max="220" step="5" value="${Math.round(scaleOf(sel) * 100)}"><b class="num">${Math.round(scaleOf(sel) * 100)}%</b></label><label><span>向き</span><input type="range" data-ed-range="r" min="-180" max="180" step="5" value="${((sel.r || 0) + 540) % 360 - 180}"><b class="num">${((sel.r || 0) + 540) % 360 - 180}°</b></label></div>` : '';
+    return { spec, list, L, nail, tool, corner, ranges, sel };
+  }
   T.views.editor = st => {
     if (!st.current) return `${U.bar({ back: true, title: 'アイテムで飾る' })}<p class="muted">デザインを選んでください。</p>`;
     const d = U.designFor(st.current.conceptId, st.current.paletteIndex), e = st.editor;
@@ -134,14 +147,7 @@
     const shape = d.foot ? 'square' : st.sel.shape, length = d.foot ? 'short' : st.sel.length, seedBase = 11 + (e.side === 'left' ? 100 : 0);
     const order = !d.foot && e.side === 'left' ? [4, 3, 2, 1, 0] : [0, 1, 2, 3, 4];
     const fingers = order.map(i => `<button class="ed-finger" data-act="ed-finger" data-i="${i}" aria-pressed="${i === e.finger}"><span class="sw">${T.renderSwatch(specs[i], d.palette, { shape, length, seed: seedBase, finger: i })}</span><span class="fl">${esc(T.FINGER_NAMES[i])}</span></button>`).join('');
-    const spec = specs[e.finger], { L } = T.nailPath(shape, length), list = spec.toppings || [];
-    let ring = '';
-    if (e.selected != null && list[e.selected]) { const t = list[e.selected], r = unitOf(t) * scaleOf(t) * 1.3 + 4; ring = `<circle class="ed-ring" cx="${(t.x * 100).toFixed(1)}" cy="${(t.y * L).toFixed(1)}" r="${r.toFixed(1)}"/>`; }
-    const nail = `<svg class="ed-nail" viewBox="-34 -26 168 ${L + 52}" data-l="${L}" role="img" aria-label="${esc(T.FINGER_NAMES[e.finger])}の爪">${T.renderNail(spec, d.palette, { shape, length, seed: seedBase, finger: e.finger })}${ring}</svg>`;
-    const sel = e.selected != null && list[e.selected] ? list[e.selected] : null;
-    const tool = sel ? `<div class="ed-tool" role="toolbar" aria-label="選んだパーツ"><button data-act="ed-smaller" aria-label="小さく">${ICON.minus}</button><button data-act="ed-bigger" aria-label="大きく">${ICON.plus}</button><button data-act="ed-rotate" aria-label="回す">${ICON.rotate}</button><button data-act="ed-front" aria-label="前へ（上に重ねる）">${ICON.up || '↑'}</button><button data-act="ed-back" aria-label="後ろへ（下に重ねる）">${ICON.down || '↓'}</button><button data-act="ed-remove" aria-label="外す">${ICON.trash}</button></div>` : `<div class="hint">${ICON.hand}<span>${list.length ? 'ドラッグで動かす・タップで選ぶ・2本指で大きさと向き' : '下のパーツを選ぶか、爪をタップして置く'}</span></div>`;
-    const corner = `<div class="ed-corner"><button class="iconbtn" data-act="ed-undo" aria-label="元に戻す" ${e.undo && e.undo.key === keyOf(st) && e.undo.stack.length ? '' : 'disabled'}>${ICON.undo || ICON.refresh}</button><button class="iconbtn" data-act="ed-zoom" aria-pressed="${!!e.zoom}" aria-label="${e.zoom ? '元の大きさで見る' : '大きく見る'}">${ICON.zoom || ICON.plus}</button></div>`;
-    const ranges = sel ? `<div class="ed-ranges"><button class="btn ghost sm ed-dup" data-act="ed-dup">${ICON.plus}同じパーツをもう1つ</button><label><span>大きさ</span><input type="range" data-ed-range="z" min="50" max="220" step="5" value="${Math.round(scaleOf(sel) * 100)}"><b class="num">${Math.round(scaleOf(sel) * 100)}%</b></label><label><span>向き</span><input type="range" data-ed-range="r" min="-180" max="180" step="5" value="${((sel.r || 0) + 540) % 360 - 180}"><b class="num">${((sel.r || 0) + 540) % 360 - 180}°</b></label></div>` : '';
+    const { spec, nail, tool, corner, ranges } = stage(st, { d, specs, shape, length, seedBase });
     const layouts = Object.keys(D.LAYOUTS).map(k => `<button class="chip" data-act="ed-layout" data-v="${k}" aria-pressed="${e.layout === k}">${esc(D.LAYOUTS[k].name)}</button>`).join('');
     const sizes = U.seg(SIZES.map(z => ({ id: z, name: z })), 'ed-size', e.size, 'aria-label="大きさ"');
     const names = T.toppings.summary([spec]), painted = !!spec.shop;
@@ -266,5 +272,5 @@
       T.actions['ed-transform'](null, st, t.dataset.edRange === 'z' ? { i, z: +t.value / 100 } : { i, r: +t.value });
     });
   }
-  T.editor = { ensureCustom, enter, addPart, addMany, dropBook, placePart, scatter, inNail, listOf, scaleOf, pushUndo, MAX_PARTS };
+  T.editor = { stage, ensureCustom, enter, addPart, addMany, dropBook, placePart, scatter, inNail, listOf, scaleOf, pushUndo, MAX_PARTS };
 })(typeof window !== 'undefined' ? window : globalThis);
