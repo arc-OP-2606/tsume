@@ -36,7 +36,19 @@
     undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>'),
     redo: svg('<path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/>'),
     stop: svg('<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/>'),
+    eraser: svg('<path d="M15.5 4.5l4 4-9.5 9.5H6l-2-2z"/><path d="M10 18h10"/>'),
   };
+  // 消しゴム（線は残さず、なぞった所にかかる線を消す）。draw.js の道具とは別に持つ
+  const ERASER = { name: '消しゴム', sizes: [4, 8, 14] };
+  const toolOf = k => (k === 'eraser' ? ERASER : D.TOOLS[k]);
+  // なぞって描くお手本（幅100・高さ100の枠。爪の長さに合わせて縦に伸ばす）
+  const GUIDES = [
+    { id: 'none', name: 'なし', d: '' },
+    { id: 'flower', name: '小花', d: [0, 72, 144, 216, 288].map(a => { const r = a * Math.PI / 180, x = 50 + Math.sin(r) * 11, y = 42 - Math.cos(r) * 7; return `M ${(x + 7).toFixed(1)} ${y.toFixed(1)} a 7 4.5 0 1 0 -14 0 a 7 4.5 0 1 0 14 0`; }).join(' ') + ' M 53 42 a 3 2 0 1 0 -6 0 a 3 2 0 1 0 6 0' },
+    { id: 'heart', name: 'ハート', d: 'M 50 58 C 22 42 30 24 44 28 C 48 29 50 33 50 35 C 50 33 52 29 56 28 C 70 24 78 42 50 58 Z' },
+    { id: 'french', name: 'フレンチ', d: 'M 4 30 Q 50 12 96 30' },
+    { id: 'twig', name: '小枝', d: 'M 34 92 C 40 70 46 50 62 18 M 46 62 C 56 58 64 52 72 44 M 40 76 C 32 70 26 62 22 52' },
+  ];
 
   // ---- 状態（st.dw）。d が今の絵。元に戻す・やり直すは、前の状態（地色と線の配列）を積む
   function fresh(st) {
@@ -145,11 +157,28 @@
     return `<p class="dw-note">${ICON.check}<span>${a.ok ? `シール工房のシートに${a.n}枚足しました。` : 'シートに足しましたが、この環境では保存できません。'}${a.over ? `${a.over}枚が紙からはみ出しています。シール工房で数を減らすか、紙を大きくしてください。` : ''}${a.white ? '白い線は、家庭用のプリンターでは刷れません（白インクが無いため）。' : ''}</span><button class="link" data-act="nav" data-view="stickers">シール工房を開く${ICON.chev}</button></p>`;
   }
   const zoomStyle = z => (z && z.k > 1 ? ` style="transform:translate(${z.x.toFixed(1)}px,${z.y.toFixed(1)}px) scale(${z.k})"` : '');
+  /** お手本の薄い点線（なぞる下書き。保存しない・爪にはのらない） */
+  function guideSvg(w, L) {
+    const g = GUIDES.find(x => x.id === w.guide); if (!g || !g.d) return '';
+    return `<svg class="dw-guide" viewBox="-6 -6 112 ${L + 12}" aria-hidden="true"><path d="${g.d}" transform="scale(1 ${(L / 100).toFixed(3)})" fill="none" stroke="#7A6B6F" stroke-width="1.4" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" opacity="0.75"/></svg>`;
+  }
+  /** 描きながら見る、小さな手の絵（今のデザイン＋描いている爪） */
+  function miniHand(st, w) {
+    if (!st.current) return '';
+    const d = U.designFor(st.current.conceptId, st.current.paletteIndex), side = sideOf(st, w); if (!d || d.foot) return '';
+    const L = T.nailPath(st.sel.shape, st.sel.length).L, f = w.d.finger;
+    const layer = `<g class="tsume-art">${w.d.bg ? `<rect x="-2" y="-2" width="104" height="${L + 20}" fill="${w.d.bg}"/>` : ''}${w.d.strokes.map(x => D.strokeSvg(x, L)).join('')}</g>`;
+    const specs = (side === 'left' ? d.left : d.right).map((x, i) => (i === f ? Object.assign({}, x, { art: null, artLayer: layer }) : x));
+    return `<div class="at-mini" aria-hidden="true">${T.renderHand(specs, d.palette, { side, shape: st.sel.shape, length: st.sel.length, seed: 11, viewBox: '50 50 320 380' })}</div>`;
+  }
   function attachBlock(st, w) {
     if (!st.current) return '<p class="small muted at-note">デザインを選んでから開くと、描いた爪をそのデザインの指にのせられます（パーツも置けます）。</p>';
     const side = sideOf(st, w), on = T.atelier && T.atelier.artOf(st, side, w.d.finger);
     const hand = side === 'left' ? '左手' : side === 'right' ? '右手' : '足';
-    return `<div class="at-attach"><button class="btn rose block" data-act="at-attach">${ICON.check}${esc(hand)}の${esc(D.FINGERS[w.d.finger])}にのせる</button>${on ? `<button class="link" data-act="at-detach">この指から絵を外す</button>` : ''}</div>`;
+    const both = side !== 'foot';
+    return `<div class="at-attach"><button class="btn rose block" data-act="at-attach">${ICON.check}${esc(hand)}の${esc(D.FINGERS[w.d.finger])}にのせる</button>
+      <div class="btnrow at-all"><button class="btn ghost" data-act="at-attach-all" data-v="side">${esc(hand)}の5本ぜんぶに</button>${both ? '<button class="btn ghost" data-act="at-attach-all" data-v="both">両手の10本に</button>' : ''}</div>
+      ${on ? `<button class="link" data-act="at-detach">この指から絵を外す</button>` : ''}</div>`;
   }
   function partsBlock(st, w) {
     if (!st.current || !syncEditor(st, w)) return { stage: `<div class="dw-stage at-empty" style="aspect-ratio:112/${D.lengthOf(w.d) + 12}">${D.svg(w.d, { cls: 'dw-nail', label: '' })}</div>`, side: '<p class="small muted">パーツは、デザインを選んでから置けます。提案や「マイデザイン」から開いてください。</p>' };
@@ -171,11 +200,13 @@
     const P = parts ? partsBlock(st, w) : null;
     const stage = parts ? P.stage : `<div class="dw-stage${w.playing ? ' playing' : ''}" style="aspect-ratio:112/${L + 12}">
           ${D.svg(d, { cls: 'dw-nail', linesCls: 'dw-lines', label: `${D.FINGERS[d.finger]}の爪` })}
+          ${guideSvg(w, L)}
           <canvas id="dw-canvas" class="dw-canvas" aria-label="${esc(D.FINGERS[d.finger])}の爪。ここに描く"></canvas>
         </div>`;
     const undoOk = w.hist.length && !w.playing;
     const drawTools = `
-        <div class="dw-tools" role="group" aria-label="道具">${['liner', 'brush', 'dot', 'bg'].map(k => `<button class="dw-tool" data-act="dw-tool" data-v="${k}" aria-pressed="${tool === k}">${IC[k]}<span>${esc(D.TOOLS[k].name)}</span></button>`).join('')}</div>
+        <div class="dw-tools" role="group" aria-label="道具">${['liner', 'brush', 'dot', 'eraser', 'bg'].map(k => `<button class="dw-tool" data-act="dw-tool" data-v="${k}" aria-pressed="${tool === k}">${IC[k]}<span>${esc(toolOf(k).name)}</span></button>`).join('')}</div>
+        <div class="dw-row at-guides"><span class="lab">お手本</span><div class="chips">${GUIDES.map(g => `<button class="chip" data-act="dw-guide" data-v="${g.id}" aria-pressed="${(w.guide || 'none') === g.id}">${esc(g.name)}</button>`).join('')}</div></div>
         ${sizes}
         ${colorsBlock(st, w)}`;
     return `${U.bar({ back: true, title: 'わたしの爪アトリエ', right: `<button class="btn sm" data-act="dw-save" ${any || d.bg ? '' : 'disabled'}>保存</button>` })}
@@ -190,6 +221,7 @@
             <div class="at-view${w.zoom.k > 1 ? ' zoomed' : ''}" data-at-view>
               <div class="at-zoom"${zoomStyle(w.zoom)}>${stage}</div>
               <i class="at-hover" aria-hidden="true"></i>
+              ${parts ? '' : miniHand(st, w)}
             </div>
             <div class="at-zoombar" role="group" aria-label="拡大">${ZOOMS.map(k => `<button class="chip" data-act="at-zoom" data-v="${k}" aria-pressed="${w.zoom.k === k}">${k}×</button>`).join('')}<span class="small muted">2本指でも拡大・移動</span></div>
             ${can ? '' : '<p class="dw-warn">このブラウザでは描けません。新しいブラウザで開いてください。</p>'}
@@ -283,9 +315,22 @@
     if (ev.pointerType === 'pen' && typeof ev.pressure === 'number' && ev.pressure > 0) q.push(Math.round(Math.min(1, ev.pressure * (1 + 0.6 * tiltOf(ev))) * 100) / 100);
     return q;
   }
+  /** 消しゴムでなぞった所にかかる線を消す（1回の「戻す」で戻る） */
+  function erase(st, e) {
+    const d = dws(st).d, L = D.lengthOf(d), r = e.w / 2;
+    const P = q => [q[0], (q[1] * L) / 100];
+    // 消しゴムの点から、線の各区間までのいちばん近い距離
+    const dist = (q, a, b) => { const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy, t = l2 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * vx + (q[1] - a[1]) * vy) / l2)) : 0; return Math.hypot(q[0] - a[0] - t * vx, q[1] - a[1] - t * vy); };
+    const near = s => { const ps = s.pts.map(P), lim = r + s.w / 2, segs = ps.length === 1 ? [[ps[0], ps[0]]] : ps.slice(1).map((b, k) => [ps[k], b]); return e.pts.map(P).some(q => segs.some(([a, b]) => dist(q, a, b) <= lim)); };
+    const keep = d.strokes.filter(s => !near(s));
+    if (keep.length === d.strokes.length) { T.app.toast('消す線がありません'); return false; }
+    commit(st, x => { x.strokes = keep; });
+    return true;
+  }
   function finish() {
     if (!cur) return;
     const s = cur.s; cur = null;
+    if (s.t === 'eraser') { erase(T.app.state, s); T.app.render(); return; }
     if (addStroke(T.app.state, s)) T.app.render();
   }
   function down(ev) {
@@ -305,8 +350,8 @@
     if (w.tool === 'bg') { T.app.toast('下の色を選ぶと、爪全体の色が変わります'); return; }
     const q = pointOf(ev, cv, L); if (!q) return;
     try { cv.setPointerCapture(ev.pointerId); } catch (e) { /* 古いブラウザ */ }
-    const tool = D.TOOLS[w.tool];
-    cur = { id: ev.pointerId, cv, a: SMOOTH[device(st)], s: { t: w.tool, c: w.color, w: widthOf(tool, w.size), pts: [q] } };
+    const tool = toolOf(w.tool);
+    cur = { id: ev.pointerId, cv, a: SMOOTH[device(st)], s: { t: w.tool, c: w.tool === 'eraser' ? '#FFFFFF' : w.color, w: widthOf(tool, w.size), pts: [q] } };
     hover(null);
     paintLive(0);
   }
@@ -315,7 +360,7 @@
     const el = hasDOM && document.querySelector('.at-hover'); if (!el) return;
     const st = T.app.state, w = st.dw;
     if (!ev || !w || ev.pointerType !== 'pen' || ev.buttons || device(st) !== 'tablet' || w.tool === 'bg') { el.classList.remove('on'); return; }
-    const view = el.parentElement.getBoundingClientRect(), cv = ev.currentTarget.getBoundingClientRect(), px = (widthOf(D.TOOLS[w.tool], w.size) * cv.width) / 112;
+    const view = el.parentElement.getBoundingClientRect(), cv = ev.currentTarget.getBoundingClientRect(), px = (widthOf(toolOf(w.tool), w.size) * cv.width) / 112;
     el.style.width = el.style.height = Math.max(4, px) + 'px';
     el.style.left = (ev.clientX - view.left) + 'px'; el.style.top = (ev.clientY - view.top) + 'px';
     el.classList.add('on');
@@ -476,7 +521,19 @@
       T.app.go('detail');
     },
     'at-detach': (el, st) => { const w = dws(st); if (T.atelier.detach(st, sideOf(st, w), w.d.finger)) T.app.toast('この指から絵を外しました（絵は「保存した絵」に残っています）'); T.app.render(); },
-    'dw-tool': (el, st) => { const w = dws(st); if (D.TOOLS[el.dataset.v]) w.tool = el.dataset.v; T.app.render(); },
+    'dw-tool': (el, st) => { const w = dws(st); if (toolOf(el.dataset.v)) w.tool = el.dataset.v; T.app.render(); },
+    'dw-guide': (el, st) => { const w = dws(st); w.guide = GUIDES.some(g => g.id === el.dataset.v) ? el.dataset.v : 'none'; T.app.render(); },
+    'at-attach-all': (el, st) => {
+      const w = dws(st); if (!st.current) { T.app.toast('デザインを選んでから開くと、指にのせられます'); return; }
+      if (!w.d.strokes.length && !w.d.bg) { T.app.toast('まだ何も描いていません'); return; }
+      const side = sideOf(st, w), sides = el.dataset.v === 'both' && side !== 'foot' ? ['left', 'right'] : [side];
+      let saved = null;
+      sides.forEach(sd => [0, 1, 2, 3, 4].forEach(i => { const r = T.atelier.attach(st, saved || w.d, sd, i); if (r && !saved) saved = r; }));
+      if (!saved) { T.app.toast('この環境では保存できません'); return; }
+      w.d = Object.assign(saved, { finger: w.d.finger }); w.dirty = false; w.confirm = null;
+      T.app.toast(sides.length > 1 ? '両手の10本にのせました' : '5本ぜんぶにのせました');
+      T.app.go('detail');
+    },
     'dw-size': (el, st) => { dws(st).size = el.dataset.v === 'x' && device(st) === 'tablet' ? 'x' : Math.max(0, Math.min(2, Math.round(+el.dataset.v) || 0)); T.app.render(); },
     'dw-color': (el, st) => pickColor(st, el.dataset.hex, el.dataset.name),
     'dw-bg-none': (el, st) => { setBg(st, null); T.app.render(); },
@@ -535,5 +592,5 @@
       w.confirmDel = null; T.app.toast(D.remove(id) ? '消しました' : '消せませんでした'); T.app.render();
     },
   });
-  T.drawView = { addStroke, state: dws, stepsSheet, device, widthOf, clampZoom };
+  T.drawView = { addStroke, state: dws, stepsSheet, device, widthOf, clampZoom, erase, GUIDES };
 })(typeof window !== 'undefined' ? window : globalThis);

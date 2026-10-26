@@ -1169,3 +1169,12 @@ body.myhand-open { overflow: hidden; }
 .at-tablet .dw-stage { height: min(76vh, 900px); }
 .at-tablet .ed-stage.at-ed .ed-nail { height: min(72vh, 860px); }
 .at-tablet .dw-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* アトリエ: お手本の点線・小さな手の絵・まとめてのせる */
+.dw-guide { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.at-guides .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.at-mini { position: absolute; right: 8px; top: 8px; width: 92px; padding: 4px; border-radius: 16px; background: var(--card); box-shadow: 0 4px 14px rgba(60, 30, 35, 0.16); pointer-events: none; }
+.at-mini svg { display: block; width: 100%; height: auto; }
+.at-tablet .at-mini { width: 150px; }
+.at-all { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; width: 100%; }
+.at .dw-tools { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.at-tablet .dw-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
